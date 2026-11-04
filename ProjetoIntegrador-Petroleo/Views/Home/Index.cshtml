@@ -1,8 +1,153 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Dashboard";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Dashboard</h1>
+    <div class="text-end">
+        <span id="status" class="badge bg-secondary">● Conectando...</span><br />
+        <small class="text-muted">Última atualização: <span id="ultima">--</span></small>
+    </div>
 </div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="fs-2" id="k-total">-</div><div class="text-muted">Ativos monitorados</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="fs-2" id="k-operando">-</div><div class="text-muted">Em operação</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center border-danger">
+            <div class="card-body">
+                <div class="fs-2 text-danger" id="k-alertas">-</div><div class="text-muted">⚠ Alertas ativos</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="fs-2" id="k-os">-</div><div class="text-muted">OS abertas</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="fs-2" id="k-disp">-</div><div class="text-muted">Disponibilidade</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex gap-3 align-items-center mb-3">
+            <label for="parametro" class="form-label mb-0">Tendência de:</label>
+            <select id="parametro" class="form-select w-auto" asp-items="(List<SelectListItem>)ViewBag.Parametros"></select>
+        </div>
+        <p id="sem-dados" class="text-muted" style="display:none">Sem dados disponíveis</p>
+        <canvas id="grafico" height="110"></canvas>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <script>
+        const sel = document.getElementById('parametro');
+        let chart = null;
+        let parametroAtual = null;
+
+        function setStatus(texto, cor) {
+            const s = document.getElementById('status');
+            s.textContent = '● ' + texto;
+            s.className = 'badge bg-' + cor;
+        }
+
+        async function atualizarIndicadores() {
+            const r = await fetch('/Home/Indicadores');
+            if (!r.ok) return;
+            const d = await r.json();
+            document.getElementById('k-total').textContent = d.total;
+            document.getElementById('k-operando').textContent = d.operando;
+            document.getElementById('k-alertas').textContent = d.alertas;
+            document.getElementById('k-os').textContent = d.os;
+            document.getElementById('k-disp').textContent = d.disp.toFixed(1) + '%';
+        }
+
+        async function carregarParametro(id) {
+            if (!id) return;
+            parametroAtual = parseInt(id);
+            const r = await fetch('/Home/Historico?parametroId=' + id);
+            if (!r.ok) return;
+            const d = await r.json();
+
+            const labels = d.pontos.map(p => p.t);
+            const valores = d.pontos.map(p => p.v);
+            document.getElementById('sem-dados').style.display = valores.length ? 'none' : 'block';
+
+            if (chart) chart.destroy();
+            chart = new Chart(document.getElementById('grafico'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: d.nome + ' (' + d.unidade + ')', data: valores, borderColor: '#0d6efd', tension: 0.2, pointRadius: 0 },
+                        { label: 'Atenção', data: labels.map(() => d.atencao), borderColor: '#ffc107', borderDash: [6, 4], pointRadius: 0 },
+                        { label: 'Crítico', data: labels.map(() => d.critico), borderColor: '#dc3545', borderDash: [6, 4], pointRadius: 0 }
+                    ]
+                },
+                options: { animation: false, responsive: true, scales: { y: { title: { display: true, text: d.unidade } } } }
+            });
+            chart.limites = { atencao: d.atencao, critico: d.critico };
+        }
+
+        function adicionarPonto(valor, hora) {
+            if (!chart) return;
+            document.getElementById('sem-dados').style.display = 'none';
+            chart.data.labels.push(hora);
+            chart.data.datasets[0].data.push(valor);
+            chart.data.datasets[1].data.push(chart.limites.atencao);
+            chart.data.datasets[2].data.push(chart.limites.critico);
+            if (chart.data.labels.length > 60) {
+                chart.data.labels.shift();
+                chart.data.datasets.forEach(ds => ds.data.shift());
+            }
+            chart.update('none');
+        }
+
+        // ---- SignalR ----
+        const conn = new signalR.HubConnectionBuilder()
+            .withUrl('/hubs/dashboard')
+            .withAutomaticReconnect()
+            .build();
+
+        conn.on('NovasLeituras', leituras => {
+            const l = leituras.find(x => x.parametroId === parametroAtual);
+            if (l) adicionarPonto(l.valor, new Date(l.dataHora).toLocaleTimeString('pt-BR'));
+            document.getElementById('ultima').textContent = new Date().toLocaleTimeString('pt-BR');
+            atualizarIndicadores();
+        });
+
+        conn.onreconnecting(() => setStatus('Reconectando... dados podem estar desatualizados', 'warning'));
+        conn.onreconnected(() => { setStatus('Conectado', 'success'); carregarParametro(parametroAtual); });
+        conn.onclose(() => setStatus('Desconectado', 'danger'));
+
+        conn.start()
+            .then(() => setStatus('Conectado', 'success'))
+            .catch(() => setStatus('Desconectado', 'danger'));
+
+        sel.addEventListener('change', () => carregarParametro(sel.value));
+        carregarParametro(sel.value);
+        atualizarIndicadores();
+    </script>
+}
