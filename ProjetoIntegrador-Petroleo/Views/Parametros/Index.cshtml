@@ -1,0 +1,71 @@
+@model IEnumerable<ProjetoIntegrador_Petroleo.Models.Parametro>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+<h1>Index</h1>
+
+<p>
+    <a asp-action="Create">Create New</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.AtivoId)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Ativo)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Nome)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Unidade)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LimiteAtencao)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.LimiteCritico)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Leituras)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+@foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(model => item.AtivoId)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Ativo)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Nome)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Unidade)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.LimiteAtencao)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.LimiteCritico)
+            </td>
+            <td>
+                @Html.DisplayFor(model => item.Leituras)
+            </td>
+            <td>
+                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
+                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
+                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+            </td>
+        </tr>
+}
+    </tbody>
+</table>
