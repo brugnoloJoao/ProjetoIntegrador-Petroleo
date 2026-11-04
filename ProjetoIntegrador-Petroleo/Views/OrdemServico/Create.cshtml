@@ -1,0 +1,102 @@
+@model ProjetoIntegrador_Petroleo.Models.OrdemServico
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Create</h1>
+
+<h4>OrdemServico</h4>
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group">
+                <label asp-for="AtivoId" class="control-label"></label>
+                <input asp-for="AtivoId" class="form-control" />
+                <span asp-validation-for="AtivoId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Ativo" class="control-label"></label>
+                <input asp-for="Ativo" class="form-control" />
+                <span asp-validation-for="Ativo" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="AlertaId" class="control-label"></label>
+                <input asp-for="AlertaId" class="form-control" />
+                <span asp-validation-for="AlertaId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Alerta" class="control-label"></label>
+                <input asp-for="Alerta" class="form-control" />
+                <span asp-validation-for="Alerta" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Titulo" class="control-label"></label>
+                <input asp-for="Titulo" class="form-control" />
+                <span asp-validation-for="Titulo" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Descricao" class="control-label"></label>
+                <input asp-for="Descricao" class="form-control" />
+                <span asp-validation-for="Descricao" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Prioridade" class="control-label"></label>
+                <input asp-for="Prioridade" class="form-control" />
+                <span asp-validation-for="Prioridade" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="Status" class="control-label"></label>
+                <input asp-for="Status" class="form-control" />
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="SolicitanteId" class="control-label"></label>
+                <input asp-for="SolicitanteId" class="form-control" />
+                <span asp-validation-for="SolicitanteId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="AprovadorId" class="control-label"></label>
+                <input asp-for="AprovadorId" class="form-control" />
+                <span asp-validation-for="AprovadorId" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DataAbertura" class="control-label"></label>
+                <input asp-for="DataAbertura" class="form-control" />
+                <span asp-validation-for="DataAbertura" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DataAprovacao" class="control-label"></label>
+                <input asp-for="DataAprovacao" class="form-control" />
+                <span asp-validation-for="DataAprovacao" class="text-danger"></span>
+            </div>
+
+            <div class="form-group">
+                <label asp-for="DataEncerramento" class="control-label"></label>
+                <input asp-for="DataEncerramento" class="form-control" />
+                <span asp-validation-for="DataEncerramento" class="text-danger"></span>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="Create" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
