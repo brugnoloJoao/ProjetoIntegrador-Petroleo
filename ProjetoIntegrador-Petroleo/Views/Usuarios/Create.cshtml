@@ -1,0 +1,36 @@
+﻿@model ProjetoIntegrador_Petroleo.Models.UsuarioCriarVM
+@{
+    ViewData["Title"] = "Novo usuário";
+}
+
+<h1>Novo usuário</h1>
+
+<form asp-action="Create" method="post" style="max-width:480px">
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Senha" class="form-label"></label>
+        <input asp-for="Senha" class="form-control" />
+        <span asp-validation-for="Senha" class="text-danger"></span>
+        <div class="form-text">Mínimo 8 caracteres, com maiúscula, minúscula, número e símbolo.</div>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Perfil" class="form-label"></label>
+        <select asp-for="Perfil" asp-items="(List<SelectListItem>)ViewBag.Perfis" class="form-select">
+            <option value="">Selecione...</option>
+        </select>
+        <span asp-validation-for="Perfil" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Salvar</button>
+    <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
