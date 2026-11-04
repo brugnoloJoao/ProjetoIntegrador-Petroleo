@@ -1,0 +1,42 @@
+﻿@model ProjetoIntegrador_Petroleo.Models.Alerta
+@{
+    ViewData["Title"] = "Reconhecer alerta";
+}
+
+<h1>Reconhecer alerta</h1>
+
+<dl class="row">
+    <dt class="col-sm-3">Equipamento</dt>
+    <dd class="col-sm-9">@Model.Parametro?.Ativo?.Nome (@Model.Parametro?.Ativo?.Tag)</dd>
+
+    <dt class="col-sm-3">Parâmetro</dt>
+    <dd class="col-sm-9">@Model.Parametro?.Nome</dd>
+
+    <dt class="col-sm-3">Severidade</dt>
+    <dd class="col-sm-9">@Model.Severidade</dd>
+
+    <dt class="col-sm-3">Valor medido</dt>
+    <dd class="col-sm-9">@Model.ValorMedido.ToString("F1") @Model.Parametro?.Unidade</dd>
+
+    <dt class="col-sm-3">Limite violado</dt>
+    <dd class="col-sm-9">@Model.LimiteViolado.ToString("F1") @Model.Parametro?.Unidade</dd>
+
+    <dt class="col-sm-3">Data/hora</dt>
+    <dd class="col-sm-9">@Model.DataHora.ToString("dd/MM/yyyy HH:mm:ss")</dd>
+
+    <dt class="col-sm-3">Status</dt>
+    <dd class="col-sm-9">@Model.Status</dd>
+</dl>
+
+<form asp-action="Reconhecer" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <div class="mb-3">
+        <label for="observacao" class="form-label">Observação</label>
+        <textarea id="observacao" name="observacao" class="form-control" rows="3" maxlength="500" required></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Confirmar reconhecimento</button>
+    <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+</form>
