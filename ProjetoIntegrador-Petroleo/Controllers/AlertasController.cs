@@ -33,6 +33,7 @@ public class AlertasController : Controller
     }
 
     [HttpGet]
+    [Authorize(Roles = "Operador,Engenheiro")]
     public async Task<IActionResult> Reconhecer(int id)
     {
         var alerta = await CarregarAsync(id);
@@ -46,7 +47,9 @@ public class AlertasController : Controller
         return View(alerta);
     }
 
+
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = "Operador,Engenheiro")]
     public async Task<IActionResult> Reconhecer(int id, string observacao)
     {
         var alerta = await CarregarAsync(id);

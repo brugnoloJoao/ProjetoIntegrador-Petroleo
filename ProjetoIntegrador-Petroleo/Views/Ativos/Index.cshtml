@@ -1,3 +1,4 @@
+
 @model IEnumerable<ProjetoIntegrador_Petroleo.Models.Ativo>
 
 @{
@@ -6,9 +7,13 @@
 
 <h1>Index</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
+@if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+{
+    <p>
+        <a asp-action="Create">Create New</a>
+    </p>
+}
+
 <table class="table">
     <thead>
         <tr>
@@ -31,29 +36,40 @@
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.Nome)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Tag)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Tipo)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Parametros)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>
+                    @Html.DisplayFor(model => item.Nome)
+                </td>
+                <td>
+                    @Html.DisplayFor(model => item.Tag)
+                </td>
+                <td>
+                    @Html.DisplayFor(model => item.Tipo)
+                </td>
+                <td>
+                    @Html.DisplayFor(model => item.Status)
+                </td>
+                <td>
+                    @Html.DisplayFor(model => item.Parametros)
+                </td>
+                <td>
+                    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+                    {
+                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+                        <span> | </span>
+                    }
+
+                    <a asp-action="Details" asp-route-id="@item.Id">Details</a>
+
+                    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+                    {
+                        <span> | </span>
+                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                    }
+                </td>
+            </tr>
+        }
     </tbody>
 </table>

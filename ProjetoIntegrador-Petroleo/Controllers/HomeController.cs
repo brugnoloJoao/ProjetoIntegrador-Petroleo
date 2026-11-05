@@ -15,6 +15,7 @@ namespace ProjetoIntegrador_Petroleo.Controllers
         private readonly AppDbContext _db;
         public HomeController(AppDbContext db) => _db = db;
 
+        [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
             var lista = await _db.Parametros

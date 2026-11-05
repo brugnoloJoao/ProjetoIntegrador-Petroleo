@@ -1,5 +1,6 @@
 @model IEnumerable<ProjetoIntegrador_Petroleo.Models.Alerta>
 @using ProjetoIntegrador_Petroleo.Models
+
 @{
     ViewData["Title"] = "Alertas";
     var filtro = ViewData["Filtro"] as string ?? "";
@@ -54,26 +55,42 @@ else
                             }
                             else
                             {
-
                                 <span class="badge bg-warning text-dark">⚠ Atenção</span>
                             }
                         </td>
-                        <td>@a.Parametro?.Ativo?.Nome <small class="text-muted">(@a.Parametro?.Ativo?.Tag)</small></td>
-                        <td>@a.Parametro?.Nome</td>
-                        <td>@a.ValorMedido.ToString("F1") @a.Parametro?.Unidade</td>
-                        <td>@a.LimiteViolado.ToString("F1") @a.Parametro?.Unidade</td>
-                        <td>@a.DataHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+
                         <td>
-                            <span class="badge @(a.Status == StatusAlerta.Ativo ? "bg-danger" : a.Status == StatusAlerta.Reconhecido ? "bg-primary" : "bg-secondary")">@a.Status</span>
+                            @a.Parametro?.Ativo?.Nome
+                            <small class="text-muted">(@a.Parametro?.Ativo?.Tag)</small>
                         </td>
+
+                        <td>@a.Parametro?.Nome</td>
+
+                        <td>@a.ValorMedido.ToString("F1") @a.Parametro?.Unidade</td>
+
+                        <td>@a.LimiteViolado.ToString("F1") @a.Parametro?.Unidade</td>
+
+                        <td>@a.DataHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+
                         <td>
-                            @if (a.ReconhecidoEm == null)
+                            <span class="badge @(a.Status == StatusAlerta.Ativo ? "bg-danger" : a.Status == StatusAlerta.Reconhecido ? "bg-primary" : "bg-secondary")">
+                                @a.Status
+                            </span>
+                        </td>
+
+                        <td>
+                            @if (a.ReconhecidoEm == null && (User.IsInRole("Operador") || User.IsInRole("Engenheiro")))
                             {
-                                <a class="btn btn-sm btn-primary" asp-action="Reconhecer" asp-route-id="@a.Id">Reconhecer</a>
+                                <a class="btn btn-sm btn-primary" asp-action="Reconhecer" asp-route-id="@a.Id">
+                                    Reconhecer
+                                </a>
                             }
-                            else
+                            else if (a.ReconhecidoEm != null)
                             {
-                                <small class="text-muted" title="@a.Observacao">por @a.ReconhecidoPorId<br />@a.ReconhecidoEm?.ToString("dd/MM HH:mm")</small>
+                                <small class="text-muted" title="@a.Observacao">
+                                    por @a.ReconhecidoPorId<br />
+                                    @a.ReconhecidoEm?.ToString("dd/MM HH:mm")
+                                </small>
                             }
                         </td>
                     </tr>
@@ -84,5 +101,7 @@ else
 }
 
 @section Scripts {
-    <script>setTimeout(() => location.reload(), 30000);</script> @* atualiza a cada 30s *@
+    <script>
+        setTimeout(() => location.reload(), 30000);
+    </script> @* atualiza a cada 30s *@
 }
