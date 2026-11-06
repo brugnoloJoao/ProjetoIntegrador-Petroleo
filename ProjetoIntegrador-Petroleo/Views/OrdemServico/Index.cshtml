@@ -1,107 +1,72 @@
 @model IEnumerable<ProjetoIntegrador_Petroleo.Models.OrdemServico>
-
+@using ProjetoIntegrador_Petroleo.Models
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Ordens de Serviço";
+    var filtro = ViewData["Filtro"] as string ?? "";
 }
 
-<h1>Index</h1>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="mb-0">Ordens de Serviço</h1>
+    @if (User.IsInRole("Engenheiro"))
+    {
+        <a class="btn btn-primary" asp-action="Create">Nova OS</a>
+    }
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.AtivoId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Ativo)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.AlertaId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Alerta)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Titulo)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Descricao)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Prioridade)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.SolicitanteId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.AprovadorId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DataAbertura)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DataAprovacao)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.DataEncerramento)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.AtivoId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Ativo)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.AlertaId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Alerta)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Titulo)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Descricao)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Prioridade)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Status)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.SolicitanteId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.AprovadorId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.DataAbertura)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.DataAprovacao)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.DataEncerramento)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+@if (TempData["Sucesso"] != null)
+{
+    <div class="alert alert-success">@TempData["Sucesso"]</div>
 }
-    </tbody>
-</table>
+@if (TempData["Aviso"] != null)
+{
+    <div class="alert alert-warning">@TempData["Aviso"]</div>
+}
+
+<div class="btn-group mb-3 flex-wrap">
+    <a class="btn btn-outline-secondary @(filtro == "" ? "active" : "")" asp-action="Index">Todas</a>
+    @foreach (var s in Enum.GetValues<StatusOrdem>())
+    {
+        <a class="btn btn-outline-secondary @(filtro == s.ToString() ? "active" : "")"
+           asp-action="Index" asp-route-status="@s">@s</a>
+    }
+</div>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">Nenhuma ordem de serviço encontrada.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr><th>#</th><th>Título</th><th>Equipamento</th><th>Prioridade</th><th>Status</th><th>Abertura</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var o in Model)
+                {
+                    <tr>
+                        <td>@o.Id</td>
+                        <td>@o.Titulo</td>
+                        <td>@o.Ativo?.Nome</td>
+                        <td>
+                            <span class="badge @(o.Prioridade == Prioridade.Alta ? "bg-danger" : o.Prioridade == Prioridade.Media ? "bg-warning text-dark" : "bg-secondary")">@o.Prioridade</span>
+                        </td>
+                        <td>
+                            <span class="badge @(o.Status switch
+                                  {
+                                      StatusOrdem.Aberta => "bg-info text-dark",
+                                      StatusOrdem.Aprovada => "bg-primary",
+                                      StatusOrdem.EmAndamento => "bg-warning text-dark",
+                                      StatusOrdem.Encerrada => "bg-success",
+                                      _ => "bg-secondary"
+                                  })">@o.Status</span>
+                        </td>
+                        <td>@o.DataAbertura.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@o.Id">Abrir</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

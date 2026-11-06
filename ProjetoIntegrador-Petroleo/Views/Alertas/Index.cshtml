@@ -1,3 +1,4 @@
+
 @model IEnumerable<ProjetoIntegrador_Petroleo.Models.Alerta>
 @using ProjetoIntegrador_Petroleo.Models
 
@@ -91,6 +92,16 @@ else
                                     por @a.ReconhecidoPorId<br />
                                     @a.ReconhecidoEm?.ToString("dd/MM HH:mm")
                                 </small>
+                            }
+
+                            @if (User.IsInRole("Engenheiro"))
+                            {
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-controller="OrdemServico"
+                                   asp-action="Create"
+                                   asp-route-alertaId="@a.Id">
+                                    Abrir OS
+                                </a>
                             }
                         </td>
                     </tr>
