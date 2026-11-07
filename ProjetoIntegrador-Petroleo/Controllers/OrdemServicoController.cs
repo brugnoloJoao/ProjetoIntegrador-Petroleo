@@ -48,7 +48,7 @@ public class OrdemServicoController : Controller
     // ---------- Abrir OS (HU9) ----------
     [HttpGet]
     [Authorize(Roles = "Engenheiro")]
-    public async Task<IActionResult> Create(int? alertaId)
+    public async Task<IActionResult> Create(int? alertaId, int? ativoId)
     {
         var os = new OrdemServico();
 
@@ -76,6 +76,16 @@ public class OrdemServicoController : Controller
                            $"valor {alerta.ValorMedido:F1} {alerta.Parametro.Unidade} " +
                            $"(limite {alerta.LimiteViolado:F1}).";
             os.Prioridade = alerta.Severidade == Severidade.Critico ? Prioridade.Alta : Prioridade.Media;
+        }
+        else if (ativoId != null)
+        {
+            var ativo = await _db.Ativos.FindAsync(ativoId);
+            if (ativo == null) return NotFound();
+
+            os.AtivoId = ativo.Id;
+            os.Titulo = $"Manutenção preventiva em {ativo.Nome}";
+            os.Descricao = "Intervenção planejada com base no ranking de risco de falha.";
+            os.Prioridade = Prioridade.Media;
         }
 
         await CarregarAtivosAsync(os.AtivoId);

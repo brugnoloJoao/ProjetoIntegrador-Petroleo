@@ -1,0 +1,56 @@
+﻿@model IEnumerable<ProjetoIntegrador_Petroleo.Models.Anomalia>
+@{
+    ViewData["Title"] = "Anomalias";
+    var dias = (int)ViewBag.Dias;
+}
+
+<h1>Anomalias detectadas</h1>
+<p class="text-muted">Leituras que se afastaram mais de 3 desvios-padrão do comportamento recente do parâmetro, mesmo sem ultrapassar um limite.</p>
+
+<form method="get" class="row g-3 mb-4 align-items-end">
+    <div class="col-md-4">
+        <label class="form-label">Equipamento</label>
+        <select name="ativoId" class="form-select" asp-items="(SelectList)ViewBag.Ativos">
+            <option value="">Todos</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Período</label>
+        <select name="dias" class="form-select">
+            <option value="1" selected="@(dias == 1)">Últimas 24 horas</option>
+            <option value="7" selected="@(dias == 7)">Últimos 7 dias</option>
+            <option value="30" selected="@(dias == 30)">Últimos 30 dias</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">Nenhuma anomalia encontrada no período.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr><th>Data/hora</th><th>Equipamento</th><th>Parâmetro</th><th>Valor</th><th>Desvios-padrão</th><th>Descrição</th></tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td>@a.DataHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td>@a.Parametro?.Ativo?.Nome</td>
+                        <td>@a.Parametro?.Nome</td>
+                        <td>@a.ValorMedido.ToString("F1") @a.Parametro?.Unidade</td>
+                        <td><span class="badge @(a.Score >= 5 ? "bg-danger" : "bg-warning text-dark")">@a.Score.ToString("F1")σ</span></td>
+                        <td>@a.Descricao</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

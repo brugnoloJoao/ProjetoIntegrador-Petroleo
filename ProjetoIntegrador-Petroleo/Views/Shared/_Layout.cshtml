@@ -26,8 +26,16 @@
                             <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Ativos" asp-action="Index">Ativos</a></li>
                             <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Parametros" asp-action="Index">Parâmetros</a></li>
                             <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Alertas" asp-action="Index">Alertas</a></li>
+                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Historico" asp-action="Index">Histórico</a></li>
                             <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="OrdemServico" asp-action="Index">Ordens de Serviço</a></li>
                         }
+
+                        @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+                        {
+                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Anomalias" asp-action="Index">Anomalias</a></li>
+                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Risco" asp-action="Index">Risco de falha</a></li>
+                        }
+
                         @if (User.IsInRole("Gestor"))
                         {
                             <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Usuarios" asp-action="Index">Usuários</a></li>
