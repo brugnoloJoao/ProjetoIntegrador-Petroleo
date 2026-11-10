@@ -1,204 +1,349 @@
-@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600&display=swap");
-
+@import url("https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 .ps-login {
   --bg: #12161d;
   --panel: #171c25;
+  --panel-2: #1c222d;
   --line: #2a313e;
   --text: #f2f4f7;
   --muted: #8b94a5;
   --accent: #f0a93b;
-  --accent-ink: #1a1405;
-
+  width: 100%;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: var(--bg);
   color: var(--text);
-  font-family: "Sora", system-ui, sans-serif;
+  font-family: "Sora", sans-serif;
 }
-
 .ps-login *,
 .ps-login *::before,
 .ps-login *::after {
   box-sizing: border-box;
 }
 
-/* topo */
+//TOPO
 .ps-top {
+  width: 100%;
+  padding: 22px 5%;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 24px 40px;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
 }
-
+.ps-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .ps-logo {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border: 1px solid var(--accent);
   border-radius: 8px;
   display: grid;
   place-items: center;
   color: var(--accent);
 }
-
 .ps-brand-name {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 600;
 }
-
 .ps-brand-name span {
   color: var(--accent);
 }
-
-/* conteúdo */
-.ps-main {
-  flex: 1;
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px 40px 64px;
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 80px;
+.ps-brand-sub {
+  margin-top: 4px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 8px;
+  letter-spacing: 0.13em;
+  color: var(--muted);
+}
+.ps-env {
+  display: flex;
+  gap: 8px;
   align-items: center;
+  font-size: 11px;
+  color: var(--muted);
 }
-
-.ps-title {
-  font-size: clamp(34px, 4.6vw, 56px);
-  line-height: 1.1;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  margin: 0 0 20px;
-  max-width: 14ch;
-}
-
-.ps-title em {
-  font-style: normal;
+.ps-env span {
   color: var(--accent);
 }
 
-.ps-lead {
-  margin: 0;
-  max-width: 36ch;
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--muted);
+//CONTEÚDO
+.ps-main {
+  flex: 1;
+  width: 100%;
+  max-width: 1500px;
+  margin: auto;
+  padding: 60px 8%;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 100px;
+  align-items: center;
 }
 
-/* cartão */
+//APRESENTAÇÃO
+.ps-intro {
+  max-width: 600px;
+}
+.ps-tag {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 28px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  color: var(--muted);
+}
+.ps-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3ddc97;
+}
+.ps-title {
+  margin: 0;
+  max-width: 14ch;
+  font-size: clamp(42px, 5vw, 66px);
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+}
+.ps-title span {
+  color: var(--accent);
+}
+.ps-lead {
+  max-width: 440px;
+  margin-top: 24px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+//ELEMENTO DECORATIVO
+.ps-decoration {
+  margin-top: 50px;
+  width: 100%;
+  max-width: 420px;
+  height: 140px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 35px,
+    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 35px 100%,
+    var(--panel);
+  display: grid;
+  place-items: center;
+}
+.ps-decoration-circle {
+  width: 65px;
+  height: 65px;
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  background: var(--panel-2);
+}
+
+//CARD DE LOGIN
 .ps-card {
+  width: 100%;
+  max-width: 460px;
+  justify-self: end;
+  padding: 30px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--panel);
-  padding: 28px;
 }
-
+.ps-card-kicker {
+  margin-bottom: 12px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
 .ps-card h2 {
-  margin: 0 0 20px;
-  font-size: 20px;
+  margin: 0;
+  font-size: 23px;
   font-weight: 600;
 }
+.ps-card-sub {
+  margin: 10px 0 24px;
+  color: var(--muted);
+  font-size: 12px;
+}
 
+//PERFIS
 .ps-profiles {
-  border: 0;
-  padding: 0;
-  margin: 0 0 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
-
-.ps-profiles legend {
-  position: absolute;
-  left: -9999px;
-}
-
 .ps-profile {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 9px;
+  background: var(--panel-2);
   cursor: pointer;
-  transition: border-color 0.15s;
+  transition: 0.2s;
 }
-
 .ps-profile:hover {
-  border-color: #3b4454;
+  border-color: #465164;
 }
-
-.ps-profile input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.ps-profile:has(input:checked) {
+.ps-profile.selected {
   border-color: var(--accent);
   background: rgba(240, 169, 59, 0.08);
 }
-
-.ps-profile:has(input:focus-visible) {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.ps-profile input {
+  position: absolute;
+  opacity: 0;
 }
-
 .ps-badge {
-  width: 30px;
-  height: 30px;
-  flex: none;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
-  font-size: 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
   color: var(--muted);
 }
-
-.ps-profile:has(input:checked) .ps-badge {
+.ps-profile.selected .ps-badge {
   border-color: var(--accent);
   color: var(--accent);
 }
-
-.ps-profile-name {
-  font-size: 13px;
-  font-weight: 500;
+.ps-profile-text {
+  flex: 1;
+}
+.ps-profile-text strong {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+}
+.ps-profile-text span {
+  display: block;
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--muted);
+}
+.ps-radio {
+  width: 19px;
+  height: 19px;
+  border: 1px solid #4a5465;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+}
+.ps-profile.selected .ps-radio {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a1405;
 }
 
+//BOTÃO
 .ps-submit {
   width: 100%;
-  padding: 14px;
-  border: 0;
+  margin-top: 20px;
+  padding: 15px;
+  border: none;
   border-radius: 8px;
   background: var(--accent);
-  color: var(--accent-ink);
-  font: 600 14px "Sora", sans-serif;
+  color: #1a1405;
+  font-family: "Sora", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: filter 0.15s;
+  transition: 0.2s;
 }
-
 .ps-submit:hover {
   filter: brightness(1.08);
+  transform: translateY(-1px);
 }
-
-.ps-submit:focus-visible {
-  outline: 2px solid var(--text);
-  outline-offset: 2px;
-}
-
 .ps-submit:disabled {
   opacity: 0.6;
   cursor: wait;
 }
 
-/* celular */
-@media (max-width: 860px) {
-  .ps-top { padding: 20px; }
+//AVISO
+.ps-disclaimer {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+//RODAPÉ
+.ps-foot {
+  padding: 18px 5%;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+//RESPONSIVIDADE
+@media (max-width: 1000px) {
+  .ps-main {
+    gap: 50px;
+    padding: 50px 5%;
+  }
+  .ps-title {
+    font-size: 46px;
+  }
+}
+
+@media (max-width: 760px) {
   .ps-main {
     grid-template-columns: 1fr;
-    gap: 36px;
-    padding: 16px 20px 40px;
+    gap: 40px;
+    padding: 40px 24px;
+  }
+  .ps-intro {
+    max-width: 100%;
+  }
+  .ps-title {
+    max-width: 15ch;
+    font-size: 45px;
+  }
+  .ps-decoration {
+    display: none;
+  }
+  .ps-card {
+    max-width: 100%;
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 480px) {
+  .ps-top {
+    padding: 18px;
+  }
+  .ps-env {
+    font-size: 9px;
+  }
+  .ps-main {
+    padding: 32px 18px;
+  }
+  .ps-title {
+    font-size: 38px;
+  }
+  .ps-card {
+    padding: 22px;
+  }
+  .ps-foot {
+    padding: 16px 18px;
+    font-size: 9px;
   }
 }
