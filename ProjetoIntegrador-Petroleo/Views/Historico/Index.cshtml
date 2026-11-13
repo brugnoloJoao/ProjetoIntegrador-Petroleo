@@ -1,5 +1,187 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model ProjetoIntegrador_Petroleo.ViewModels.HistoricoVM
 @{
+    ViewData["Title"] = "Histórico";
+}
+
+<h1>Histórico de leituras</h1>
+
+<form method="get" asp-action="Index" class="row g-3 mb-4 align-items-end">
+    <div class="col-md-3">
+        <label class="form-label">Equipamento</label>
+        <select name="ativoId" class="form-select" asp-items="Model.Ativos" onchange="this.form.submit()">
+            <option value="">Selecione...</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Parâmetro</label>
+        <select name="parametroId" class="form-select" asp-items="Model.Parametros">
+            <option value="">Selecione...</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">De</label>
+        <input type="datetime-local" name="de" class="form-control" value="@Model.De.ToString("yyyy-MM-ddTHH:mm")" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Até</label>
+        <input type="datetime-local" name="ate" class="form-control" value="@Model.Ate.ToString("yyyy-MM-ddTHH:mm")" />
+    </div>
+    <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Consultar</button>
+    </div>
+</form>
+
+@if (Model.Erro != null)
+{
+    <div class="alert alert-danger">@Model.Erro</div>
+}
+else if (Model.Parametro == null)
+{
+    <p class="text-muted">Selecione um equipamento e um parâmetro para consultar o histórico.</p>
+}
+else if (Model.TotalLeituras == 0)
+{
+    <p class="text-muted">Sem dados disponíveis para o período selecionado.</p>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="fs-4">@Model.TotalLeituras.ToString("N0")</div><div class="text-muted">Leituras</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="fs-4">@Model.Minimo?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Mínimo</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="fs-4">@Model.Media?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Média</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="card text-center">
+                <div class="card-body">
+                    <div class="fs-4">@Model.Maximo?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Máximo</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <canvas id="grafico" height="100"></canvas>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <small class="text-muted">Consulta executada em @Model.TempoConsultaMs ms</small>
+        <a class="btn btn-sm btn-outline-secondary" asp-action="Exportar"
+           asp-route-parametroId="@Model.ParametroId"
+           asp-route-de="@Model.De.ToString("yyyy-MM-ddTHH:mm")"
+           asp-route-ate="@Model.Ate.ToString("yyyy-MM-ddTHH:mm")">Exportar CSV</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover">
+            <thead><tr><th>Data/hora</th><th>Valor</th><th>Situação</th></tr></thead>
+            <tbody>
+                @foreach (var l in Model.Linhas)
+                {
+                    <tr>
+                        <td>@l.DataHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td>@l.Valor.ToString("F2") @Model.Parametro.Unidade</td>
+                        <td>
+                            @if (l.Valor >= Model.Parametro.LimiteCritico)
+                            {
+                                <span class="badge bg-danger">⛔ Crítico</span>
+                            }
+                            else if (l.Valor >= Model.Parametro.LimiteAtencao)
+                            {
+
+                                <span class="badge bg-warning text-dark">⚠ Atenção</span>
+                            }
+                            else
+                            {
+
+                                <span class="badge bg-success">✓ Normal</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <nav class="d-flex justify-content-between align-items-center">
+        @{
+            var de = Model.De.ToString("yyyy-MM-ddTHH:mm");
+            var ate = Model.Ate.ToString("yyyy-MM-ddTHH:mm");
+        }
+        @if (Model.Pagina > 1)
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index"
+               asp-route-ativoId="@Model.AtivoId" asp-route-parametroId="@Model.ParametroId"
+               asp-route-de="@de" asp-route-ate="@ate" asp-route-pagina="@(Model.Pagina - 1)">← Anterior</a>
+        }
+        else
+        {
+
+            <span></span>
+        }
+
+        <span class="text-muted">Página @Model.Pagina de @Model.TotalPaginas</span>
+
+        @if (Model.Pagina < Model.TotalPaginas)
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index"
+               asp-route-ativoId="@Model.AtivoId" asp-route-parametroId="@Model.ParametroId"
+               asp-route-de="@de" asp-route-ate="@ate" asp-route-pagina="@(Model.Pagina + 1)">Próxima →</a>
+        }
+        else
+        {
+
+            <span></span>
+        }
+    </nav>
+
+    @section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+            const labels = @Json.Serialize(Model.Labels);
+            const medias = @Json.Serialize(Model.Medias);
+            const minimos = @Json.Serialize(Model.Minimos);
+            const maximos = @Json.Serialize(Model.Maximos);
+            const atencao = @Model.Parametro.LimiteAtencao.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            const critico = @Model.Parametro.LimiteCritico.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            new Chart(document.getElementById('grafico'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Média (@Model.Parametro.Unidade)', data: medias, borderColor: '#0d6efd', pointRadius: 0, tension: 0.2 },
+                        { label: 'Mínimo', data: minimos, borderColor: 'rgba(25,135,84,.5)', pointRadius: 0, borderWidth: 1 },
+                        { label: 'Máximo', data: maximos, borderColor: 'rgba(108,117,125,.6)', pointRadius: 0, borderWidth: 1 },
+                        { label: 'Atenção', data: labels.map(() => atencao), borderColor: '#ffc107', borderDash: [6, 4], pointRadius: 0 },
+                        { label: 'Crítico', data: labels.map(() => critico), borderColor: '#dc3545', borderDash: [6, 4], pointRadius: 0 }
+                    ]
+                },
+                options: {
+                    animation: false,
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: { y: { title: { display: true, text: '@Model.Parametro.Unidade' } } }
+                }
+            });
+        </script>
+    }
 }
