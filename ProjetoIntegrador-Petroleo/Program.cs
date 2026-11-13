@@ -10,7 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sql => sql.EnableRetryOnFailure()
+    ));
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
@@ -67,8 +70,14 @@ app.MapRazorPages();
 app.MapHub<DashboardHub>("/hubs/dashboard");
 
 
-using (var scope = app.Services.CreateScope())
+using (var scope = app.Services.CreateAsyncScope())
 {
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    await db.Database.MigrateAsync();
+
     await IdentitySeed.ExecutarAsync(scope.ServiceProvider);
 }
+
+
 app.Run();
