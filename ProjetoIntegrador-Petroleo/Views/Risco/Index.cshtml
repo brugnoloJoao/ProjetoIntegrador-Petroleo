@@ -1,5 +1,59 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
+﻿@model List<ProjetoIntegrador_Petroleo.ViewModels.RiscoAtivoVM>
 @{
+    ViewData["Title"] = "Risco de falha";
+}
+
+<h1>Risco de falha</h1>
+<p class="text-muted">Ranking dos equipamentos mais propensos a uma parada, calculado com os últimos 7 dias de alertas, anomalias e a tendência da última hora.</p>
+
+@if (!Model.Any())
+{
+    <p class="text-muted">Nenhum equipamento cadastrado.</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Equipamento</th>
+                    <th style="min-width:220px">Risco</th>
+                    <th class="text-center">Alertas críticos</th>
+                    <th class="text-center">Alertas de atenção</th>
+                    <th class="text-center">Anomalias</th>
+                    <th class="text-center">Proximidade do limite</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    var cor = r.Nivel == "Alto" ? "danger" : r.Nivel == "Médio" ? "warning" : "success";
+                    var icone = r.Nivel == "Alto" ? "⛔" : r.Nivel == "Médio" ? "⚠" : "✓";
+                    <tr>
+                        <td>@r.Nome <small class="text-muted">(@r.Tag)</small></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:10px">
+                                    <div class="progress-bar bg-@cor" style="width:@(r.Pontos)%"></div>
+                                </div>
+                                <span class="badge bg-@cor @(cor == "warning" ? "text-dark" : "")">@icone @r.Nivel (@r.Pontos)</span>
+                            </div>
+                        </td>
+                        <td class="text-center">@r.AlertasCriticos</td>
+                        <td class="text-center">@r.AlertasAtencao</td>
+                        <td class="text-center">@r.Anomalias</td>
+                        <td class="text-center">@(r.ProximidadePercentual > 0 ? r.ProximidadePercentual + "%" : "—")</td>
+                        <td>
+                            @if (User.IsInRole("Engenheiro") && r.Nivel != "Baixo")
+                            {
+                                <a class="btn btn-sm btn-outline-primary" asp-controller="OrdemServico"
+                                   asp-action="Create" asp-route-ativoId="@r.AtivoId">Planejar manutenção</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
