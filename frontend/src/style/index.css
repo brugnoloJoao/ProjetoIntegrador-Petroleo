@@ -8,17 +8,12 @@ html,
 body,
 #root {
   width: 100%;
-  min-height: 100%;
+  min-height: 100vh;
 }
 
 body {
   min-width: 320px;
-  min-height: 100vh;
   display: block;
   background: #12161d;
-}
-
-#root {
-  width: 100%;
-  min-height: 100vh;
+  color: #f1f5f9;
 }
