@@ -1,0 +1,29 @@
+
+name: CI - PetroSync
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restaurar dependências
+        working-directory: ./ProjetoIntegrador-Petroleo
+        run: dotnet restore
+
+      - name: Compilar projeto
+        working-directory: ./ProjetoIntegrador-Petroleo
+        run: dotnet build --configuration Release --no-restore
