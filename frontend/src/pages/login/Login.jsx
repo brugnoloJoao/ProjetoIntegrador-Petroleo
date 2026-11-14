@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import ThreeBackground from "../../components/ThreeBackground";
@@ -26,7 +25,7 @@ const PERFIS = [
   },
 ];
 
-// Usuários fictícios para demonstração
+//para demonstração
 const USUARIOS = [
   {
     email: "operador@petrosync.com",
@@ -45,7 +44,6 @@ const USUARIOS = [
   },
 ];
 
-// Ícone da logo
 const IconPulse = () => (
   <svg
     width="22"
@@ -63,17 +61,14 @@ const IconPulse = () => (
 
 export default function Login() {
   const navigate = useNavigate();
-
   // Etapa 1: perfil | Etapa 2: login
   const [etapa, setEtapa] = useState(1);
-
   const [perfil, setPerfil] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
-
   // Selecionar perfil
   function selecionarPerfil(perfilSelecionado) {
     setPerfil(perfilSelecionado);
@@ -95,8 +90,9 @@ export default function Login() {
 
   // Validar o login
   function entrar(e) {
-    e.preventDefault();
-    setErro("");
+  e.preventDefault();
+  if (carregando) return;
+  setErro("");
 
     const usuario = USUARIOS.find(
       (u) =>

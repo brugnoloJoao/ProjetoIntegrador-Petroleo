@@ -139,11 +139,6 @@ export default function Historico() {
           <span>08h</span>
           <span>12h</span>
         </div>
-
-        <p className="eng-note">
-          O gráfico utiliza dados simulados. A seleção do
-          equipamento ainda não altera a série exibida.
-        </p>
       </section>
     </>
   );

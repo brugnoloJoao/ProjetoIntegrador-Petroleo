@@ -1,0 +1,712 @@
+.gst-app {
+  --gst-bg: #11151c;
+  --gst-panel: #171c25;
+  --gst-border: #2c3441;
+  --gst-text: #f2f3f5;
+  --gst-muted: #919bad;
+  --gst-orange: #f5aa32;
+
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  background: var(--gst-bg);
+  color: var(--gst-text);
+  font-family: Inter, Arial, sans-serif;
+  font-size: 14px;
+}
+
+.gst-app * {
+  box-sizing: border-box;
+}
+
+/* CONTEÚDO PRINCIPAL */
+
+.gst-content {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.gst-topbar {
+  height: 76px;
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--gst-border);
+  color: var(--gst-muted);
+  font-size: 10px;
+  letter-spacing: 1.3px;
+}
+
+.gst-topbar b {
+  color: var(--gst-orange);
+  margin: 0 8px;
+}
+
+.gst-environment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0;
+  font-size: 11px;
+}
+
+.gst-environment i {
+  width: 6px;
+  height: 6px;
+  background: var(--gst-orange);
+  border-radius: 50%;
+}
+
+.gst-main {
+  width: 100%;
+  min-width: 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 40px 60px;
+}
+
+/* CABEÇALHO */
+
+.gst-heading {
+  margin-bottom: 30px;
+}
+
+.gst-eyebrow {
+  display: block;
+  color: #35d5a0;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  margin-bottom: 13px;
+}
+
+.gst-heading h1 {
+  font-size: clamp(26px, 3vw, 34px);
+  letter-spacing: -1px;
+  margin: 0 0 10px;
+}
+
+.gst-heading p {
+  color: var(--gst-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* INDICADORES */
+
+.gst-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.gst-stat {
+  min-width: 0;
+  background: var(--gst-panel);
+  border: 1px solid var(--gst-border);
+  border-radius: 12px;
+  padding: 22px;
+}
+
+.gst-stat > span {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 1.1px;
+  color: #a6b0be;
+}
+
+.gst-stat strong {
+  display: block;
+  font-size: 34px;
+  margin: 16px 0 9px;
+}
+
+.gst-stat small {
+  color: var(--gst-muted);
+  font-size: 11px;
+}
+
+.gst-orange {
+  color: var(--gst-orange);
+}
+
+.gst-red {
+  color: #f27676;
+}
+
+.gst-green {
+  color: #4adba1;
+}
+
+/* PAINÉIS */
+
+.gst-panel {
+  min-width: 0;
+  background: var(--gst-panel);
+  border: 1px solid var(--gst-border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 22px;
+}
+
+.gst-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.gst-section-head h2 {
+  font-size: 17px;
+  margin: 0 0 8px;
+}
+
+.gst-section-head p {
+  color: var(--gst-muted);
+  font-size: 12px;
+  margin: 0;
+}
+
+.gst-text-link {
+  color: var(--gst-orange);
+  text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.gst-note {
+  color: var(--gst-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 18px 0;
+}
+
+/* LISTAS */
+
+.gst-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--gst-border);
+}
+
+.gst-item:last-child {
+  border-bottom: none;
+}
+
+.gst-item strong {
+  display: block;
+  font-size: 13px;
+}
+
+.gst-item small {
+  display: block;
+  color: var(--gst-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 7px;
+}
+
+.gst-empty {
+  color: var(--gst-muted);
+  font-size: 13px;
+  padding: 15px 0;
+}
+
+/* STATUS */
+
+.gst-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  padding: 7px 11px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.gst-status.pendente {
+  background: #352918;
+  color: #f5aa32;
+}
+
+.gst-status.aprovada {
+  background: #1a352b;
+  color: #4adba1;
+}
+
+.gst-status.rejeitada {
+  background: #392327;
+  color: #f27676;
+}
+
+/* BOTÕES */
+
+.gst-button {
+  border: 1px solid var(--gst-orange);
+  background: var(--gst-orange);
+  color: #171717;
+  border-radius: 8px;
+  padding: 11px 15px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.gst-button:hover {
+  filter: brightness(1.1);
+}
+
+.gst-button.secondary {
+  background: transparent;
+  color: #e6e9ef;
+  border-color: #3c4655;
+}
+
+.gst-button.secondary:hover {
+  border-color: #f27676;
+  color: #f27676;
+}
+
+.gst-button.danger {
+  background: #e15b65;
+  border-color: #e15b65;
+  color: white;
+}
+
+.gst-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* FILTROS */
+
+.gst-select {
+  background: #11161e;
+  color: #f2f3f5;
+  border: 1px solid #364050;
+  border-radius: 8px;
+  padding: 11px 12px;
+  font: inherit;
+  outline: none;
+}
+
+.gst-select:focus {
+  border-color: var(--gst-orange);
+}
+
+/* GRÁFICOS */
+
+.gst-two-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.gst-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  padding: 15px 0;
+}
+
+.gst-bar-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: #b5beca;
+}
+
+.gst-bar-label strong {
+  color: #f2f3f5;
+  font-size: 14px;
+}
+
+.gst-bar-track {
+  height: 9px;
+  width: 100%;
+  background: #2b3441;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.gst-bar-fill {
+  height: 100%;
+  border-radius: 20px;
+  transition: width 0.3s ease;
+}
+
+.gst-bar-fill.normal {
+  background: #4adba1;
+}
+
+.gst-bar-fill.alerta {
+  background: #f5aa32;
+}
+
+.gst-bar-fill.critico {
+  background: #f27676;
+}
+
+/* APROVAÇÃO DE ORDENS */
+
+.gst-order {
+  padding: 20px 0;
+  border-bottom: 1px solid var(--gst-border);
+}
+
+.gst-order:last-child {
+  border-bottom: none;
+}
+
+.gst-order-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.gst-order-top strong {
+  font-size: 13px;
+}
+
+.gst-order-top p {
+  color: var(--gst-muted);
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 8px 0 0;
+}
+
+.gst-order-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.gst-order-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  color: var(--gst-muted);
+  font-size: 11px;
+}
+
+.gst-order-info b {
+  color: #e6e9ef;
+}
+
+.gst-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* RELATÓRIOS */
+
+.gst-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+.gst-summary > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--gst-border);
+}
+
+.gst-summary > div:last-child {
+  border-bottom: none;
+}
+
+.gst-summary span {
+  color: #aab3c0;
+  font-size: 12px;
+}
+
+.gst-summary strong {
+  font-size: 16px;
+  color: #f2f3f5;
+}
+
+/* MENSAGENS DE SUCESSO E ERRO */
+
+.gst-feedback {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 18px;
+  border-radius: 9px;
+  margin-bottom: 22px;
+  border: 1px solid;
+}
+
+.gst-feedback.sucesso {
+  background: #18352b;
+  border-color: #2e7558;
+  color: #65e4b1;
+}
+
+.gst-feedback.erro {
+  background: #392327;
+  border-color: #87404b;
+  color: #ff9292;
+}
+
+.gst-feedback > span {
+  font-size: 19px;
+  font-weight: bold;
+}
+
+.gst-feedback p {
+  flex: 1;
+  margin: 0;
+  font-size: 13px;
+}
+
+.gst-feedback button {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+/* JANELA DE CONFIRMAÇÃO */
+
+.gst-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(5px);
+}
+
+.gst-modal {
+  width: 100%;
+  max-width: 430px;
+  background: #1a202a;
+  border: 1px solid #364050;
+  border-radius: 14px;
+  padding: 30px;
+  color: #f2f3f5;
+  box-shadow: 0 20px 70px rgba(0, 0, 0, 0.4);
+}
+
+.gst-modal-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  background: #302719;
+  color: #f5aa32;
+  border-radius: 12px;
+  font-size: 25px;
+  margin-bottom: 20px;
+}
+
+.gst-modal h2 {
+  margin: 0 0 10px;
+  font-size: 21px;
+}
+
+.gst-modal > p {
+  color: #aab3c0;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 22px;
+}
+
+.gst-modal-order {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 17px;
+  background: #121720;
+  border: 1px solid #2c3441;
+  border-radius: 9px;
+  margin-bottom: 24px;
+}
+
+.gst-modal-order strong {
+  color: #f5aa32;
+  font-size: 13px;
+}
+
+.gst-modal-order span {
+  font-size: 13px;
+}
+
+.gst-modal-order small {
+  color: #919bad;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.gst-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* RESPONSIVIDADE - TABLET */
+
+@media (max-width: 950px) {
+  .gst-topbar {
+    padding: 0 24px;
+  }
+
+  .gst-main {
+    padding: 30px 24px;
+  }
+
+  .gst-stats {
+    gap: 12px;
+  }
+
+  .gst-two-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* RESPONSIVIDADE - CELULAR */
+
+@media (max-width: 750px) {
+  .gst-app {
+    flex-direction: column;
+  }
+
+  .gst-content {
+    width: 100%;
+  }
+
+  .gst-topbar {
+    height: 60px;
+    padding: 0 20px;
+  }
+
+  .gst-main {
+    padding: 25px 20px;
+  }
+
+  .gst-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .gst-two-columns {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .gst-section-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gst-section-head .gst-select {
+    width: 100%;
+  }
+
+  .gst-order-bottom {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .gst-actions {
+    width: 100%;
+  }
+
+  .gst-actions button {
+    flex: 1;
+  }
+}
+
+/* CELULARES PEQUENOS */
+
+@media (max-width: 480px) {
+  .gst-topbar {
+    padding: 0 16px;
+  }
+
+  .gst-environment {
+    display: none;
+  }
+
+  .gst-main {
+    padding: 20px 14px;
+  }
+
+  .gst-heading h1 {
+    font-size: 25px;
+  }
+
+  .gst-panel {
+    padding: 16px;
+  }
+
+  .gst-stat {
+    padding: 18px;
+  }
+
+  .gst-item,
+  .gst-order-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .gst-order-info {
+    gap: 10px;
+  }
+
+  .gst-actions {
+    flex-direction: column;
+  }
+
+  .gst-actions button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .gst-select {
+    width: 100%;
+  }
+
+  .gst-summary > div {
+    gap: 10px;
+  }
+
+  .gst-summary strong {
+    text-align: right;
+  }
+
+  .gst-modal {
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 22px;
+  }
+
+  .gst-modal-actions {
+    flex-direction: column;
+  }
+
+  .gst-modal-actions button {
+    width: 100%;
+  }
+}

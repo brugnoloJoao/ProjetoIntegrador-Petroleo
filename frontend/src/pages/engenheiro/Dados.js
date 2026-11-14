@@ -1,5 +1,4 @@
 // Dados simulados para demonstração.
-
 export const equipamentosIniciais = [
   {
     id: "BP-02",
