@@ -398,6 +398,14 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# SQL Server backups
+*.bak
+*.bacpac
 
 ### VisualStudio ###
 
