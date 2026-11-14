@@ -1,5 +1,7 @@
 import { useState } from "react";
 import "./Login.css";
+import { useNavigate } from "react-router-dom";
+import ThreeBackground from "../../components/ThreeBackground";
 
 const PERFIS = [
   {
@@ -40,6 +42,7 @@ const IconPulse = () => (
 export default function Login({ onLogin }) {
   const [perfil, setPerfil] = useState("operador");
   const [carregando, setCarregando] = useState(false);
+  const navigate = useNavigate();
 
   const entrar = (e) => {
     e.preventDefault();
@@ -48,11 +51,13 @@ export default function Login({ onLogin }) {
     setTimeout(() => {
       setCarregando(false);
       onLogin?.(perfil);
+      navigate(`/${perfil}`);
     }, 600);
   };
 
   return (
     <div className="ps-login">
+      <ThreeBackground />
 
       <header className="ps-top">
         <div className="ps-brand">
@@ -78,7 +83,6 @@ export default function Login({ onLogin }) {
       </header>
 
       <main className="ps-main">
-
         <section className="ps-intro">
           <div className="ps-tag">
             <span className="ps-dot"></span>
@@ -95,15 +99,9 @@ export default function Login({ onLogin }) {
             em manutenção inteligente.
           </p>
 
-          <div className="ps-decoration">
-            <div className="ps-decoration-circle">
-              <IconPulse />
-            </div>
-          </div>
         </section>
 
         <section className="ps-card">
-
           <div className="ps-card-kicker">
             ACESSO À PLATAFORMA
           </div>
@@ -115,7 +113,6 @@ export default function Login({ onLogin }) {
           </p>
 
           <form onSubmit={entrar}>
-
             <div className="ps-profiles">
               {PERFIS.map((p) => (
                 <label
@@ -160,7 +157,7 @@ export default function Login({ onLogin }) {
           </form>
 
           <div className="ps-disclaimer">
-             Dados simulados
+            Dados simulados
           </div>
         </section>
       </main>

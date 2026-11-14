@@ -120,32 +120,6 @@
   line-height: 1.8;
 }
 
-/*ELEMENTO DECORATIVO*/
-.ps-decoration {
-  margin-top: 50px;
-  width: 100%;
-  max-width: 420px;
-  height: 140px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background:
-    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 35px,
-    linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 35px 100%,
-    var(--panel);
-  display: grid;
-  place-items: center;
-}
-.ps-decoration-circle {
-  width: 65px;
-  height: 65px;
-  border: 1px solid var(--accent);
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  color: var(--accent);
-  background: var(--panel-2);
-}
-
 /*CARD DE LOGIN*/
 .ps-card {
   width: 100%;
@@ -317,9 +291,6 @@
     max-width: 15ch;
     font-size: 45px;
   }
-  .ps-decoration {
-    display: none;
-  }
   .ps-card {
     max-width: 100%;
     justify-self: stretch;
@@ -346,4 +317,16 @@
     padding: 16px 18px;
     font-size: 9px;
   }
+}
+
+.ps-login {
+  position: relative;
+  overflow: hidden;
+}
+
+.ps-top,
+.ps-main,
+.ps-foot {
+  position: relative;
+  z-index: 1;
 }
