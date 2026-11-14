@@ -1,0 +1,71 @@
+
+name: CD - PetroSync
+
+on:
+  push:
+    branches: [main]
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: petrosync
+  REGION: southamerica-east1
+  REPOSITORY: petrosync-repo
+  IMAGE_NAME: petrosync
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restaurar dependências
+        working-directory: ./ProjetoIntegrador-Petroleo
+        run: dotnet restore
+
+      - name: Compilar projeto
+        working-directory: ./ProjetoIntegrador-Petroleo
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Autenticar no Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      - name: Configurar Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configurar Docker
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Construir imagem Docker
+        run: |
+          IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${IMAGE_NAME}:${GITHUB_SHA}"
+          docker build -t "$IMAGE" ./ProjetoIntegrador-Petroleo
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      - name: Publicar imagem
+        run: docker push "$IMAGE"
+
+      - name: Implantar no Cloud Run
+        run: |
+          gcloud run services update petrosync \
+            --project "$PROJECT_ID" \
+            --region "$REGION" \
+            --container petrosync-1 \
+            --image "$IMAGE" \
+            --quiet
