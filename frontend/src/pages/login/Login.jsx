@@ -1,8 +1,10 @@
+
 import { useState } from "react";
-import "./Login.css";
 import { useNavigate } from "react-router-dom";
 import ThreeBackground from "../../components/ThreeBackground";
+import "./Login.css";
 
+// Perfis disponíveis
 const PERFIS = [
   {
     id: "operador",
@@ -24,6 +26,26 @@ const PERFIS = [
   },
 ];
 
+// Usuários fictícios para demonstração
+const USUARIOS = [
+  {
+    email: "operador@petrosync.com",
+    senha: "123456",
+    perfil: "operador",
+  },
+  {
+    email: "engenheiro@petrosync.com",
+    senha: "123456",
+    perfil: "engenheiro",
+  },
+  {
+    email: "gestor@petrosync.com",
+    senha: "123456",
+    perfil: "gestor",
+  },
+];
+
+// Ícone da logo
 const IconPulse = () => (
   <svg
     width="22"
@@ -39,26 +61,84 @@ const IconPulse = () => (
   </svg>
 );
 
-export default function Login({ onLogin }) {
-  const [perfil, setPerfil] = useState("operador");
-  const [carregando, setCarregando] = useState(false);
+export default function Login() {
   const navigate = useNavigate();
 
-  const entrar = (e) => {
+  // Etapa 1: perfil | Etapa 2: login
+  const [etapa, setEtapa] = useState(1);
+
+  const [perfil, setPerfil] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [erro, setErro] = useState("");
+  const [carregando, setCarregando] = useState(false);
+
+  // Selecionar perfil
+  function selecionarPerfil(perfilSelecionado) {
+    setPerfil(perfilSelecionado);
+    setEtapa(2);
+    setEmail("");
+    setSenha("");
+    setErro("");
+  }
+
+  // Voltar para a escolha do perfil
+  function voltar() {
+    setEtapa(1);
+    setPerfil("");
+    setEmail("");
+    setSenha("");
+    setErro("");
+    setMostrarSenha(false);
+  }
+
+  // Validar o login
+  function entrar(e) {
     e.preventDefault();
+    setErro("");
+
+    const usuario = USUARIOS.find(
+      (u) =>
+        u.email === email.trim().toLowerCase() &&
+        u.senha === senha &&
+        u.perfil === perfil
+    );
+
+    if (!usuario) {
+      setErro(
+        "E-mail ou senha incorretos para o perfil selecionado."
+      );
+      return;
+    }
+
     setCarregando(true);
 
+    // Simulação de autenticação
     setTimeout(() => {
+      sessionStorage.setItem(
+        "petrosync_usuario",
+        JSON.stringify({
+          email: usuario.email,
+          perfil: usuario.perfil,
+        })
+      );
+
       setCarregando(false);
-      onLogin?.(perfil);
-      navigate(`/${perfil}`);
-    }, 600);
-  };
+      navigate(`/${usuario.perfil}`, { replace: true });
+    }, 500);
+  }
+
+  const perfilSelecionado = PERFIS.find(
+    (p) => p.id === perfil
+  );
 
   return (
     <div className="ps-login">
+      {/* Fundo animado */}
       <ThreeBackground />
 
+      {/* CABEÇALHO */}
       <header className="ps-top">
         <div className="ps-brand">
           <div className="ps-logo">
@@ -82,7 +162,9 @@ export default function Login({ onLogin }) {
         </div>
       </header>
 
+      {/* CONTEÚDO */}
       <main className="ps-main">
+        {/* LADO ESQUERDO */}
         <section className="ps-intro">
           <div className="ps-tag">
             <span className="ps-dot"></span>
@@ -98,70 +180,204 @@ export default function Login({ onLogin }) {
             Monitore equipamentos e transforme dados
             em manutenção inteligente.
           </p>
-
         </section>
 
+        {/* CARD DE LOGIN */}
         <section className="ps-card">
           <div className="ps-card-kicker">
             ACESSO À PLATAFORMA
           </div>
 
-          <h2>Entre no PetroSync</h2>
-
-          <p className="ps-card-sub">
-            Selecione um perfil para continuar.
-          </p>
-
-          <form onSubmit={entrar}>
-            <div className="ps-profiles">
-              {PERFIS.map((p) => (
-                <label
-                  key={p.id}
-                  className={`ps-profile ${
-                    perfil === p.id ? "selected" : ""
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="perfil"
-                    value={p.id}
-                    checked={perfil === p.id}
-                    onChange={() => setPerfil(p.id)}
-                  />
-
-                  <span className="ps-badge">
-                    {p.sigla}
-                  </span>
-
-                  <span className="ps-profile-text">
-                    <strong>{p.nome}</strong>
-                    <span>{p.desc}</span>
-                  </span>
-
-                  <span className="ps-radio">
-                    {perfil === p.id ? "✓" : ""}
-                  </span>
-                </label>
-              ))}
+          {/* INDICADOR DAS ETAPAS */}
+          <div className="ps-steps">
+            <div
+              className={`ps-step ${
+                etapa === 1 ? "active" : "completed"
+              }`}
+            >
+              <span>1</span>
+              Perfil
             </div>
 
-            <button
-              className="ps-submit"
-              type="submit"
-              disabled={carregando}
+            <div className="ps-step-line"></div>
+
+            <div
+              className={`ps-step ${
+                etapa === 2 ? "active" : ""
+              }`}
             >
-              {carregando
-                ? "Entrando..."
-                : "Acessar plataforma →"}
-            </button>
-          </form>
+              <span>2</span>
+              Acesso
+            </div>
+          </div>
+
+          {/* ETAPA 1 - ESCOLHER PERFIL */}
+          {etapa === 1 && (
+            <div className="ps-stage">
+              <h2>Selecione seu perfil</h2>
+
+              <p className="ps-card-sub">
+                Escolha sua função para continuar.
+              </p>
+
+              <div className="ps-profiles">
+                {PERFIS.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="ps-profile"
+                    onClick={() => selecionarPerfil(p.id)}
+                  >
+                    <span className="ps-badge">
+                      {p.sigla}
+                    </span>
+
+                    <span className="ps-profile-text">
+                      <strong>{p.nome}</strong>
+                      <span>{p.desc}</span>
+                    </span>
+
+                    <span className="ps-radio">
+                      →
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ETAPA 2 - E-MAIL E SENHA */}
+          {etapa === 2 && (
+            <div className="ps-stage">
+              <h2>Entre no PetroSync</h2>
+
+              <p className="ps-card-sub">
+                Informe seus dados para acessar o sistema.
+              </p>
+
+              {/* PERFIL ESCOLHIDO */}
+              <div className="ps-selected-profile">
+                <div className="ps-selected-info">
+                  <span className="ps-badge">
+                    {perfilSelecionado?.sigla}
+                  </span>
+
+                  <div>
+                    <strong>
+                      {perfilSelecionado?.nome}
+                    </strong>
+                    <small>
+                      Perfil selecionado
+                    </small>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="ps-change-profile"
+                  onClick={voltar}
+                >
+                  Alterar
+                </button>
+              </div>
+
+              {/* FORMULÁRIO */}
+              <form onSubmit={entrar}>
+                <div className="ps-field">
+                  <label htmlFor="email">
+                    E-mail
+                  </label>
+
+                  <input
+                    id="email"
+                    type="email"
+                    placeholder="seuemail@petrosync.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setErro("");
+                    }}
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+
+                <div className="ps-field">
+                  <label htmlFor="senha">
+                    Senha
+                  </label>
+
+                  <div className="ps-password">
+                    <input
+                      id="senha"
+                      type={
+                        mostrarSenha
+                          ? "text"
+                          : "password"
+                      }
+                      placeholder="Digite sua senha"
+                      value={senha}
+                      onChange={(e) => {
+                        setSenha(e.target.value);
+                        setErro("");
+                      }}
+                      autoComplete="current-password"
+                      required
+                    />
+
+                    <button
+                      type="button"
+                      className="ps-toggle-password"
+                      onClick={() =>
+                        setMostrarSenha(!mostrarSenha)
+                      }
+                    >
+                      {mostrarSenha
+                        ? "Ocultar"
+                        : "Mostrar"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* MENSAGEM DE ERRO */}
+                {erro && (
+                  <div
+                    className="ps-error"
+                    role="alert"
+                  >
+                    ⚠ {erro}
+                  </div>
+                )}
+
+                {/* BOTÃO ENTRAR */}
+                <button
+                  className="ps-submit"
+                  type="submit"
+                  disabled={carregando}
+                >
+                  {carregando
+                    ? "Verificando acesso..."
+                    : "Entrar na plataforma →"}
+                </button>
+              </form>
+
+              <button
+                type="button"
+                className="ps-back"
+                onClick={voltar}
+              >
+                ← Voltar para os perfis
+              </button>
+            </div>
+          )}
 
           <div className="ps-disclaimer">
-            Dados simulados
+            Ambiente de demonstração · Dados simulados
           </div>
         </section>
       </main>
 
+      {/* RODAPÉ */}
       <footer className="ps-foot">
         <span>© 2026 PetroSync</span>
         <span>Manutenção preditiva</span>
