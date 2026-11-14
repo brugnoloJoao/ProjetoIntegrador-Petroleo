@@ -67,5 +67,4 @@ jobs:
             --project "$PROJECT_ID" \
             --region "$REGION" \
             --container petrosync-1 \
-            --image "$IMAGE" \
-            --quiet
+            --image "$IMAGE"
