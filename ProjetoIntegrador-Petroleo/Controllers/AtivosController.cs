@@ -54,7 +54,7 @@ public class AtivosController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Engenheiro,Gestor")]
-    public async Task<IActionResult> Create([Bind("Id,Nome,Tag,Tipo,Status,Parametros")] Ativo ativo)
+    public async Task<IActionResult> Create([Bind("Id,Nome,Tag,Tipo,Status")] Ativo ativo)
     {
         if (ModelState.IsValid)
         {
@@ -88,7 +88,7 @@ public class AtivosController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Engenheiro,Gestor")]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nome,Tag,Tipo,Status,Parametros")] Ativo ativo)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nome,Tag,Tipo,Status")] Ativo ativo)
     {
         if (id != ativo.Id)
         {
