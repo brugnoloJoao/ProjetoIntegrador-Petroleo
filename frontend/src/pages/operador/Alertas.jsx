@@ -1,101 +1,130 @@
 import { useState } from "react";
-import { alertasOperador } from "./dadosOperador";
+import { useOperador } from "./dadosOperador";
+import StatusBadge from "./StatusBadge";
+import Icone from "./Icones";
+
+const opcoes = ["Todos", "Crítico", "Alerta"];
+const dois = (n) => String(n).padStart(2, "0");
 
 export default function Alertas() {
+  const { alertas, reconhecerAlerta } = useOperador();
   const [filtro, setFiltro] = useState("Todos");
 
-  const alertasFiltrados = alertasOperador.filter(
-    (alerta) =>
-      filtro === "Todos" || alerta.gravidade === filtro
+  const filtrados = alertas.filter(
+    (a) => filtro === "Todos" || a.gravidade === filtro
   );
 
-  const criticos = alertasOperador.filter(
-    (alerta) => alerta.gravidade === "Crítico"
-  ).length;
+  const criticos = alertas.filter((a) => a.gravidade === "Crítico").length;
+  const pendentes = alertas.filter((a) => !a.reconhecido).length;
 
   return (
-    <>
-      <div className="op-heading">
-        <span className="op-eyebrow">
-          ● CONTROLE DE OCORRÊNCIAS
-        </span>
-
-        <h1>Alertas</h1>
-
-        <p>
-          Acompanhe os problemas identificados pelos sensores.
-        </p>
-      </div>
-
-      <div className="op-stats op-stats-two">
-        <div className="op-stat">
-          <span>TOTAL DE ALERTAS</span>
-          <strong className="op-orange">
-            {String(alertasOperador.length).padStart(2, "0")}
-          </strong>
-          <small>Ocorrências registradas</small>
+    <div className="op-scada-page">
+      <div className="op-page-banner">
+        <div>
+          <span className="op-eyebrow">GESTÃO DE ANOMALIAS // NORMA ISA-18.2</span>
+          <h1>Central de Alarmes Operacionais</h1>
         </div>
 
-        <div className="op-stat">
-          <span>ALERTAS CRÍTICOS</span>
-          <strong className="op-red">
-            {String(criticos).padStart(2, "0")}
-          </strong>
-          <small>Prioridade de atenção</small>
-        </div>
-      </div>
-
-      <section className="op-panel">
-        <div className="op-section-head">
-          <div>
-            <h2>Alertas registrados</h2>
-            <p>Ocorrências recentes dos equipamentos.</p>
-          </div>
-
-          <select
-            className="op-select"
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-            aria-label="Filtrar alertas"
-          >
-            <option value="Todos">Todos</option>
-            <option value="Alerta">Alertas</option>
-            <option value="Crítico">Críticos</option>
-          </select>
-        </div>
-
-        {alertasFiltrados.map((alerta) => (
-          <div className="op-item" key={alerta.id}>
-            <div>
-              <strong>
-                {alerta.equipamento}
-              </strong>
-
-              <small>{alerta.descricao}</small>
-
-              <small>
-                {alerta.data} às {alerta.hora}
-              </small>
-            </div>
-
-            <span
-              className={`op-status ${
-                alerta.gravidade === "Crítico"
-                  ? "critico"
-                  : "alerta"
-              }`}
+        <div className="op-tabs">
+          {opcoes.map((op) => (
+            <button
+              type="button"
+              key={op}
+              className={filtro === op ? "ativo" : ""}
+              onClick={() => setFiltro(op)}
             >
-              {alerta.gravidade}
-            </span>
-          </div>
-        ))}
+              {op}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {alertasFiltrados.length === 0 && (
-          <p className="op-empty">
-            Nenhum alerta encontrado.
-          </p>
-        )}
+      <section className="op-kpi-row op-kpi-row-3">
+        <article className="op-kpi-card">
+          <div className="op-kpi-head">
+            <span>TOTAL DE OCORRÊNCIAS</span>
+          </div>
+          <div className="op-kpi-val">
+            <strong>{dois(alertas.length)}</strong>
+            <small>registros no turno</small>
+          </div>
+        </article>
+
+        <article className="op-kpi-card">
+          <div className="op-kpi-head">
+            <span>AGUARDANDO CIÊNCIA (ACK)</span>
+          </div>
+          <div className="op-kpi-val">
+            <strong className={pendentes > 0 ? "is-amber" : "is-ok"}>{dois(pendentes)}</strong>
+            <small>pendentes</small>
+          </div>
+        </article>
+
+        <article className="op-kpi-card">
+          <div className="op-kpi-head">
+            <span>SEVERIDADE CRÍTICA</span>
+          </div>
+          <div className="op-kpi-val">
+            <strong className={criticos > 0 ? "is-critico" : ""}>{dois(criticos)}</strong>
+            <small>prioridade 1</small>
+          </div>
+        </article>
       </section>
-    </>
+
+      <section className="op-box">
+        <div className="op-box-head">
+          <span>LISTA DE ALARMES ATIVOS E RECONHECIDOS</span>
+          <b>{filtrados.length} EXIBIDOS</b>
+        </div>
+
+        <div className="op-table-wrap">
+          <table className="op-table">
+            <thead>
+              <tr>
+                <th>TAG</th>
+                <th>DATA / HORA</th>
+                <th>EQUIPAMENTO</th>
+                <th>DESCRIÇÃO TÉCNICA</th>
+                <th>GRAVIDADE</th>
+                <th>AÇÃO</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtrados.map((alerta) => (
+                <tr key={alerta.id}>
+                  <td className="op-mono is-amber">{alerta.tag}</td>
+                  <td className="op-mono">
+                    {alerta.data} {alerta.hora}
+                  </td>
+                  <td>
+                    <strong>{alerta.equipamento}</strong>
+                    <small>{alerta.nomeEquipamento}</small>
+                  </td>
+                  <td>{alerta.descricao}</td>
+                  <td>
+                    <StatusBadge status={alerta.gravidade} />
+                  </td>
+                  <td>
+                    {alerta.reconhecido ? (
+                      <span className="op-ack-ok">
+                        <Icone nome="check" tamanho={13} /> ACK OK
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="op-btn-ack"
+                        onClick={() => reconhecerAlerta(alerta.id)}
+                      >
+                        RECONHECER (ACK)
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   );
 }
