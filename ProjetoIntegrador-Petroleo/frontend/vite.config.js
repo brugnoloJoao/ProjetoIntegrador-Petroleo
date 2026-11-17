@@ -15,6 +15,7 @@ export default defineConfig({
         dashboard: resolve(root, 'src/dashboard.jsx'),
         filters: resolve(root, 'src/filters.js'),
         loginBackground: resolve(root, 'src/login-background.jsx'),
+        operatorMachine: resolve(root, 'src/operator/operator-machine.jsx'),
       },
       output: {
         entryFileNames: '[name].js',

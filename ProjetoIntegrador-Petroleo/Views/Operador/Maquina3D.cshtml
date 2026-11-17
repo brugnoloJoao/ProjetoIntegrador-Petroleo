@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Máquina 3D";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/operator-machine.css" asp-append-version="true" />
+}
+
+<section class="operator-machine-page">
+    <header class="operator-machine-heading">
+        <div>
+            <span class="operator-machine-eyebrow"><i></i> ÁREA DO OPERADOR</span>
+            <h1>Máquina 3D</h1>
+            <p>Explore o conjunto e consulte a condição dos ativos monitorados.</p>
+        </div>
+        <a class="operator-machine-back" asp-controller="OrdemServico" asp-action="Index">Ordens de serviço <span aria-hidden="true">→</span></a>
+    </header>
+
+    <form id="operator-machine-token" class="d-none">@Html.AntiForgeryToken()</form>
+    <div id="operator-machine-app" data-machine="@(ViewData["Maquina3D"])" aria-live="polite">
+        <div class="operator-machine-loading">Carregando visualização 3D…</div>
+    </div>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/dist/operatorMachine.js" asp-append-version="true"></script>
+}

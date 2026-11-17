@@ -32,6 +32,7 @@ builder.Services.ConfigureApplicationCookie(o =>
 });
 
 builder.Services.AddSingleton<SimuladorEstado>();
+builder.Services.AddSingleton<Maquina3DControleEstado>();
 builder.Services.AddHostedService<SimuladorLeituras>();
 
 builder.Services.AddSignalR();

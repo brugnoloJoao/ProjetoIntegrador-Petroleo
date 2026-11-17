@@ -34,14 +34,18 @@
                 <div class="sidebar-section-label">MENU PRINCIPAL</div>
                 <nav class="sidebar-nav" aria-label="Navegação principal">
                     <a class="sidebar-link @(currentController == "Home" && currentAction == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index"><span class="sidebar-icon">⌂</span>Visão geral</a>
-                    <a class="sidebar-link @(currentController == "Ativos" ? "active" : "")" asp-controller="Ativos" asp-action="Index"><span class="sidebar-icon">◈</span>Ativos</a>
                     @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
                     {
+                        <a class="sidebar-link @(currentController == "Ativos" ? "active" : "")" asp-controller="Ativos" asp-action="Index"><span class="sidebar-icon">◈</span>Ativos</a>
                         <a class="sidebar-link @(currentController == "Parametros" ? "active" : "")" asp-controller="Parametros" asp-action="Index"><span class="sidebar-icon">⌁</span>Parâmetros</a>
                     }
                     <a class="sidebar-link @(currentController == "Alertas" ? "active" : "")" asp-controller="Alertas" asp-action="Index"><span class="sidebar-icon">◉</span>Alertas</a>
                     <a class="sidebar-link @(currentController == "Historico" ? "active" : "")" asp-controller="Historico" asp-action="Index"><span class="sidebar-icon">◷</span>Histórico</a>
                     <a class="sidebar-link @(currentController == "OrdemServico" ? "active" : "")" asp-controller="OrdemServico" asp-action="Index"><span class="sidebar-icon">▤</span>Ordens de serviço</a>
+                    @if (User.IsInRole("Operador"))
+                    {
+                        <a class="sidebar-link @(currentController == "Operador" ? "active" : "")" asp-controller="Operador" asp-action="Maquina3D"><span class="sidebar-icon">◈</span>Máquina 3D</a>
+                    }
                     @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
                     {
                         <div class="sidebar-section-label sidebar-section-spaced">ANÁLISE</div>

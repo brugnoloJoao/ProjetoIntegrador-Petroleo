@@ -14,23 +14,27 @@ public class SimuladorLeituras : BackgroundService
     private readonly IHubContext<DashboardHub> _hub;
     private readonly IConfiguration _config;
     private readonly SimuladorEstado _estado;
+    private readonly Maquina3DControleEstado _controles;
 
     // Guarda os picos em andamento:
     // parametroId -> (ciclos restantes, valor do pico)
     private readonly Dictionary<int, (int Restantes, double Nivel)> _picos = new();
+    private bool _falhaAnterior;
 
     public SimuladorLeituras(
         IServiceScopeFactory scopeFactory,
         ILogger<SimuladorLeituras> logger,
         IHubContext<DashboardHub> hub,
         IConfiguration config,
-        SimuladorEstado estado)
+        SimuladorEstado estado,
+        Maquina3DControleEstado controles)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _hub = hub;
         _config = config;
         _estado = estado;
+        _controles = controles;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -77,17 +81,32 @@ public class SimuladorLeituras : BackgroundService
 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var agora = DateTime.UtcNow;
+        var controles = _controles.Ler();
 
         var parametros = await db.Parametros
             .Include(p => p.Ativo)
             .Where(p => p.Ativo!.Status == StatusAtivo.Operando)
             .ToListAsync(ct);
+        var ativoControladoId = parametros
+            .OrderBy(p => p.AtivoId)
+            .Select(p => (int?)p.AtivoId)
+            .FirstOrDefault();
+
+        if (_falhaAnterior && !controles.FalhaSimulada && ativoControladoId is not null)
+        {
+            foreach (var parametroId in parametros.Where(p => p.AtivoId == ativoControladoId).Select(p => p.Id))
+                _picos.Remove(parametroId);
+        }
+        _falhaAnterior = controles.FalhaSimulada;
 
         var novas = new List<object>();
 
         foreach (var p in parametros)
         {
-            var valor = GerarValor(p);
+            var controlesAtivo = p.AtivoId == ativoControladoId
+                ? controles
+                : new Maquina3DControleSnapshot(10.5, false);
+            var valor = GerarValor(p, controlesAtivo);
 
             await VerificarAnomaliaAsync(db, p, valor, agora, ct);
 
@@ -105,7 +124,14 @@ public class SimuladorLeituras : BackgroundService
             {
                 parametroId = p.Id,
                 valor,
-                dataHora = agora
+                dataHora = agora,
+                simulada = true,
+                nome = p.Nome,
+                unidade = p.Unidade,
+                limiteAtencao = p.LimiteAtencao,
+                limiteCritico = p.LimiteCritico,
+                ativo = p.Ativo!.Nome,
+                tagAtivo = p.Ativo.Tag
             });
         }
 
@@ -116,9 +142,30 @@ public class SimuladorLeituras : BackgroundService
     }
 
     // ---------- Geração do valor ----------
-    private double GerarValor(Parametro p)
+    private double GerarValor(Parametro p, Maquina3DControleSnapshot controles)
     {
-        // Pico em andamento: mantém o valor alto por alguns ciclos.
+        var nomeParametro = p.Nome.ToLowerInvariant();
+        var proporcaoVelocidade = controles.Cadencia / 10.5;
+        var impactoVelocidade = nomeParametro.Contains("vaz")
+            ? proporcaoVelocidade
+            : nomeParametro.Contains("vibra")
+                ? Math.Pow(proporcaoVelocidade, 1.35)
+                : 0.85 + proporcaoVelocidade * 0.15;
+        var baseline = p.LimiteAtencao * 0.75 * impactoVelocidade;
+
+        if (controles.FalhaSimulada)
+        {
+            if (nomeParametro.Contains("vibra") || nomeParametro.Contains("temper") || nomeParametro.Contains("press"))
+            {
+                var fatorFalha = 1.04 + Random.Shared.NextDouble() * 0.06;
+                return Math.Round(Math.Max(p.LimiteCritico * fatorFalha, baseline), 2);
+            }
+
+            if (nomeParametro.Contains("vaz") || nomeParametro.Contains("flux"))
+                return Math.Round(Math.Max(0, baseline * 0.35 + Gaussiano() * baseline * 0.01), 2);
+        }
+
+        // Picos aleatórios seguem ativos para os demais ciclos simulados.
         if (_picos.TryGetValue(p.Id, out var pico) && pico.Restantes > 0)
         {
             _picos[p.Id] = (pico.Restantes - 1, pico.Nivel);
@@ -127,7 +174,6 @@ public class SimuladorLeituras : BackgroundService
                 pico.Nivel + Gaussiano() * pico.Nivel * 0.005, 2);
         }
 
-        var baseline = p.LimiteAtencao * 0.75;
         var valor = baseline + Gaussiano() * baseline * 0.03;
 
         // 2% de chance por ciclo de iniciar um pico.
