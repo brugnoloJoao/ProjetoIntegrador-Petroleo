@@ -36,6 +36,7 @@ public class AtivosController : Controller
         }
 
         var ativo = await _context.Ativos
+            .Include(a => a.Parametros)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (ativo == null)
         {

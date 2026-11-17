@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Data;
 using ProjetoIntegrador_Petroleo.Models;
@@ -11,14 +12,27 @@ namespace ProjetoIntegrador_Petroleo.Controllers;
 public class OrdemServicoController : Controller
 {
     private readonly AppDbContext _db;
-    public OrdemServicoController(AppDbContext db) => _db = db;
+    private readonly UserManager<IdentityUser> _users;
+
+    public OrdemServicoController(AppDbContext db, UserManager<IdentityUser> users)
+    {
+        _db = db;
+        _users = users;
+    }
 
     public async Task<IActionResult> Index(StatusOrdem? status)
     {
         var query = _db.OrdensServico
             .Include(o => o.Ativo)
+            .Include(o => o.Operador)
             .AsNoTracking()
             .AsQueryable();
+
+        if (User.IsInRole("Operador") && !User.IsInRole("Engenheiro") && !User.IsInRole("Gestor"))
+        {
+            var operadorId = _users.GetUserId(User);
+            query = query.Where(o => o.OperadorId == operadorId);
+        }
 
         if (status != null)
             query = query.Where(o => o.Status == status);
@@ -36,11 +50,25 @@ public class OrdemServicoController : Controller
 
     public async Task<IActionResult> Details(int id)
     {
-        var os = await _db.OrdensServico
+        var query = _db.OrdensServico
             .Include(o => o.Ativo)
+            .Include(o => o.Operador)
             .Include(o => o.Alerta).ThenInclude(a => a!.Parametro)
             .AsNoTracking()
-            .FirstOrDefaultAsync(o => o.Id == id);
+            .AsQueryable();
+
+        if (User.IsInRole("Operador") && !User.IsInRole("Engenheiro") && !User.IsInRole("Gestor"))
+        {
+            var operadorId = _users.GetUserId(User);
+            query = query.Where(o => o.OperadorId == operadorId);
+        }
+
+        var os = await query.FirstOrDefaultAsync(o => o.Id == id);
+
+        if (os != null && (User.IsInRole("Engenheiro") || User.IsInRole("Gestor")))
+        {
+            await CarregarOperadoresAsync(os.OperadorId);
+        }
 
         return os == null ? NotFound() : View(os);
     }
@@ -89,19 +117,26 @@ public class OrdemServicoController : Controller
         }
 
         await CarregarAtivosAsync(os.AtivoId);
+        await CarregarOperadoresAsync(os.OperadorId);
         return View(os);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = "Engenheiro")]
     public async Task<IActionResult> Create(
-        [Bind("AtivoId,AlertaId,Titulo,Descricao,Prioridade")] OrdemServico os)
+        [Bind("AtivoId,AlertaId,Titulo,Descricao,Prioridade,OperadorId")] OrdemServico os)
     {
         ModelState.Remove(nameof(OrdemServico.SolicitanteId));
+
+        if (!string.IsNullOrWhiteSpace(os.OperadorId) && !await OperadorValidoAsync(os.OperadorId))
+        {
+            ModelState.AddModelError(nameof(os.OperadorId), "Selecione uma conta ativa com perfil de Operador.");
+        }
 
         if (!ModelState.IsValid)
         {
             await CarregarAtivosAsync(os.AtivoId);
+            await CarregarOperadoresAsync(os.OperadorId);
             return View(os);
         }
 
@@ -116,6 +151,27 @@ public class OrdemServicoController : Controller
         return RedirectToAction(nameof(Details), new { id = os.Id });
     }
 
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = "Engenheiro,Gestor")]
+    public async Task<IActionResult> Atribuir(int id, string? operadorId)
+    {
+        var os = await _db.OrdensServico.FindAsync(id);
+        if (os == null) return NotFound();
+
+        if (!string.IsNullOrWhiteSpace(operadorId) && !await OperadorValidoAsync(operadorId))
+        {
+            TempData["Aviso"] = "Selecione uma conta ativa com perfil de Operador.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        os.OperadorId = string.IsNullOrWhiteSpace(operadorId) ? null : operadorId;
+        await _db.SaveChangesAsync();
+        TempData["Sucesso"] = os.OperadorId == null
+            ? "Operador removido da ordem de serviço."
+            : "Operador atribuído à ordem de serviço.";
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
     // ---------- Aprovar / Rejeitar (RF9) ----------
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = "Gestor")]
@@ -184,6 +240,25 @@ public class OrdemServicoController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    private async Task CarregarOperadoresAsync(string? selecionado)
+    {
+        var operadores = await _users.GetUsersInRoleAsync("Operador");
+        var ativos = operadores
+            .Where(u => !u.LockoutEnd.HasValue || u.LockoutEnd <= DateTimeOffset.UtcNow)
+            .OrderBy(u => u.Email)
+            .Select(u => new { u.Id, Nome = u.Email ?? u.UserName ?? "Operador" })
+            .ToList();
+
+        ViewBag.Operadores = new SelectList(ativos, "Id", "Nome", selecionado);
+    }
+
+    private async Task<bool> OperadorValidoAsync(string operadorId)
+    {
+        var operador = await _users.FindByIdAsync(operadorId);
+        return operador != null
+            && (!operador.LockoutEnd.HasValue || operador.LockoutEnd <= DateTimeOffset.UtcNow)
+            && await _users.IsInRoleAsync(operador, "Operador");
+    }
     private async Task CarregarAtivosAsync(int? selecionado)
     {
         var ativos = await _db.Ativos.AsNoTracking().OrderBy(a => a.Nome).ToListAsync();

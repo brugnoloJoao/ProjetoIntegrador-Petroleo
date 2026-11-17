@@ -29,7 +29,7 @@
     <div class="empty-state empty-notice">
         <div class="empty-state-icon">▤</div>
         <h2 class="section-title">Nenhuma ordem de serviço cadastrada</h2>
-        <p>As ordens de serviço abertas aparecerão aqui para acompanhamento.</p>
+        <p>@(User.IsInRole("Operador") && !User.IsInRole("Engenheiro") && !User.IsInRole("Gestor") ? "As ordens atribuídas a você aparecerão aqui." : "As ordens de serviço abertas aparecerão aqui para acompanhamento.")</p>
     </div>
 }
 else
@@ -37,15 +37,16 @@ else
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead>
-                <tr><th>#</th><th>Título</th><th>Equipamento</th><th>Prioridade</th><th>Status</th><th>Abertura</th><th></th></tr>
+                <tr><th>#</th><th>Título</th><th>Equipamento</th><th>Operador responsável</th><th>Prioridade</th><th>Status</th><th>Abertura</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach (var o in Model)
                 {
-                    <tr data-order-row data-status="@o.Status" data-search="@($"{o.Id} {o.Titulo} {o.Ativo?.Nome} {o.Prioridade} {o.Status}")">
+                    <tr data-order-row data-status="@o.Status" data-search="@($"{o.Id} {o.Titulo} {o.Ativo?.Nome} {o.Operador?.Email} {o.Prioridade} {o.Status}")">
                         <td>@o.Id</td>
                         <td>@o.Titulo</td>
                         <td>@o.Ativo?.Nome</td>
+                        <td>@(o.Operador?.Email ?? "Não atribuído")</td>
                         <td>
                             <span class="badge @(o.Prioridade == Prioridade.Alta ? "bg-danger" : o.Prioridade == Prioridade.Media ? "bg-warning text-dark" : "bg-secondary")">@o.Prioridade</span>
                         </td>

@@ -1,10 +1,36 @@
 @model ProjetoIntegrador_Petroleo.Models.OrdemServico
 @using ProjetoIntegrador_Petroleo.Models
+@using Microsoft.AspNetCore.Mvc.Rendering
+
 @{
     ViewData["Title"] = "OS #" + Model.Id;
+    var statusClass = Model.Status switch
+    {
+        StatusOrdem.Aberta => "bg-info",
+        StatusOrdem.Aprovada => "bg-primary",
+        StatusOrdem.EmAndamento => "bg-warning",
+        StatusOrdem.Encerrada => "bg-success",
+        _ => "bg-secondary"
+    };
+    var prioridadeClass = Model.Prioridade switch
+    {
+        Prioridade.Alta => "bg-danger",
+        Prioridade.Media => "bg-warning",
+        _ => "bg-secondary"
+    };
 }
 
-<h1>OS #@Model.Id – @Model.Titulo</h1>
+<section class="page-heading detail-page-heading">
+    <div>
+        <p class="eyebrow">PLANEJAMENTO DE MANUTENÇÃO · OS #@Model.Id</p>
+        <div class="detail-title-line">
+            <h1>@Model.Titulo</h1>
+            <span class="badge @statusClass">@Model.Status</span>
+        </div>
+        <p class="page-subtitle">Aberta em @Model.DataAbertura.ToString("dd/MM/yyyy 'às' HH:mm")</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ordens</a>
+</section>
 
 @if (TempData["Sucesso"] != null)
 {
@@ -15,69 +41,124 @@
     <div class="alert alert-warning">@TempData["Aviso"]</div>
 }
 
-<dl class="row">
-    <dt class="col-sm-3">Equipamento</dt>
-    <dd class="col-sm-9">@Model.Ativo?.Nome <span class="asset-tag">@Model.Ativo?.Tag</span></dd>
-
-    <dt class="col-sm-3">Status</dt>
-    <dd class="col-sm-9">@Model.Status</dd>
-
-    <dt class="col-sm-3">Prioridade</dt>
-    <dd class="col-sm-9">@Model.Prioridade</dd>
-
-    <dt class="col-sm-3">Descrição</dt>
-    <dd class="col-sm-9">@Model.Descricao</dd>
-
-    @if (Model.Alerta != null)
-    {
-        <dt class="col-sm-3">Alerta de origem</dt>
-        <dd class="col-sm-9">
-            @Model.Alerta.Parametro?.Nome, @Model.Alerta.Severidade em @TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(Model.Alerta.DataHora, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo")).ToString("dd/MM/yyyy HH:mm")
-        </dd>
-    }
-
-    <dt class="col-sm-3">Solicitante</dt>
-    <dd class="col-sm-9">@Model.SolicitanteId em @Model.DataAbertura.ToString("dd/MM/yyyy HH:mm")</dd>
-
-    @if (Model.AprovadorId != null)
-    {
-        <dt class="col-sm-3">Analisada por</dt>
-        <dd class="col-sm-9">@Model.AprovadorId em @Model.DataAprovacao?.ToString("dd/MM/yyyy HH:mm")</dd>
-    }
-    @if (Model.DataEncerramento != null)
-    {
-        <dt class="col-sm-3">Encerrada em</dt>
-        <dd class="col-sm-9">@Model.DataEncerramento?.ToString("dd/MM/yyyy HH:mm")</dd>
-    }
-</dl>
-
-<div class="d-flex gap-2">
-    @if (Model.Status == StatusOrdem.Aberta && User.IsInRole("Gestor"))
-    {
-        <form asp-action="Decidir" method="post">
-            <input type="hidden" name="id" value="@Model.Id" />
-            <input type="hidden" name="aprovar" value="true" />
-            <button class="btn btn-success">Aprovar</button>
-        </form>
-        <form asp-action="Decidir" method="post">
-            <input type="hidden" name="id" value="@Model.Id" />
-            <input type="hidden" name="aprovar" value="false" />
-            <button class="btn btn-danger">Rejeitar</button>
-        </form>
-    }
-    @if (Model.Status == StatusOrdem.Aprovada && User.IsInRole("Engenheiro"))
-    {
-        <form asp-action="Iniciar" method="post">
-            <input type="hidden" name="id" value="@Model.Id" />
-            <button class="btn btn-primary">Iniciar manutenção</button>
-        </form>
-    }
-    @if (Model.Status == StatusOrdem.EmAndamento && User.IsInRole("Engenheiro"))
-    {
-        <form asp-action="Encerrar" method="post">
-            <input type="hidden" name="id" value="@Model.Id" />
-            <button class="btn btn-success">Encerrar OS</button>
-        </form>
-    }
-    <a asp-action="Index" class="btn btn-outline-secondary">Voltar</a>
+<div class="detail-summary-grid detail-summary-grid-os">
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">◈</span>
+        <div><span class="detail-summary-label">Equipamento</span><strong>@Model.Ativo?.Nome</strong><span class="asset-tag">@Model.Ativo?.Tag</span></div>
+    </article>
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">⚑</span>
+        <div><span class="detail-summary-label">Prioridade</span><span class="badge @prioridadeClass">@Model.Prioridade</span></div>
+    </article>
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">♙</span>
+        <div><span class="detail-summary-label">Operador responsável</span><strong>@(Model.Operador?.Email ?? "Ainda não atribuído")</strong></div>
+    </article>
 </div>
+
+<div class="detail-content-grid">
+    <section class="card detail-section-card detail-description-card">
+        <div class="detail-section-heading">
+            <div>
+                <p class="eyebrow">ESCOPO DO SERVIÇO</p>
+                <h2>Descrição da intervenção</h2>
+            </div>
+        </div>
+        <p class="detail-description">@(string.IsNullOrWhiteSpace(Model.Descricao) ? "Nenhuma descrição informada." : Model.Descricao)</p>
+
+        @if (Model.Alerta != null)
+        {
+            <div class="detail-origin-note">
+                <span class="detail-summary-icon">◉</span>
+                <div>
+                    <span class="detail-summary-label">Alerta de origem</span>
+                    <strong>@Model.Alerta.Parametro?.Nome · @Model.Alerta.Severidade</strong>
+                    <small>@TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(Model.Alerta.DataHora, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo")).ToString("dd/MM/yyyy HH:mm")</small>
+                </div>
+            </div>
+        }
+    </section>
+
+    <section class="card detail-section-card detail-history-card">
+        <div class="detail-section-heading">
+            <div>
+                <p class="eyebrow">ACOMPANHAMENTO</p>
+                <h2>Registro da ordem</h2>
+            </div>
+        </div>
+        <div class="detail-timeline">
+            <div class="detail-timeline-item">
+                <span class="detail-timeline-dot"></span>
+                <div><strong>Solicitada por</strong><span>@Model.SolicitanteId</span><small>@Model.DataAbertura.ToString("dd/MM/yyyy HH:mm")</small></div>
+            </div>
+            @if (Model.AprovadorId != null)
+            {
+                <div class="detail-timeline-item">
+                    <span class="detail-timeline-dot"></span>
+                    <div><strong>Analisada por</strong><span>@Model.AprovadorId</span><small>@Model.DataAprovacao?.ToString("dd/MM/yyyy HH:mm")</small></div>
+                </div>
+            }
+            @if (Model.DataEncerramento != null)
+            {
+                <div class="detail-timeline-item">
+                    <span class="detail-timeline-dot is-complete"></span>
+                    <div><strong>Encerrada</strong><small>@Model.DataEncerramento?.ToString("dd/MM/yyyy HH:mm")</small></div>
+                </div>
+            }
+        </div>
+    </section>
+</div>
+
+@if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+{
+    <form asp-action="Atribuir" method="post" class="os-assignment-form">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <div class="os-assignment-copy">
+            <strong>Responsável pela execução</strong>
+            <span>Selecione um usuário com perfil de Operador para vincular a esta OS.</span>
+        </div>
+        <div class="os-assignment-controls">
+            <select name="operadorId" asp-items="(SelectList)ViewBag.Operadores" class="form-select" aria-label="Operador responsável">
+                <option value="">Sem operador atribuído</option>
+            </select>
+            <button type="submit" class="btn btn-outline-primary">Salvar atribuição</button>
+        </div>
+    </form>
+}
+
+<section class="detail-actions-card">
+    <div class="detail-actions-copy">
+        <strong>Ações da ordem</strong>
+        <span>As ações disponíveis dependem do status atual e do seu perfil.</span>
+    </div>
+    <div class="detail-actions-buttons">
+        @if (Model.Status == StatusOrdem.Aberta && User.IsInRole("Gestor"))
+        {
+            <form asp-action="Decidir" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="aprovar" value="true" />
+                <button class="btn btn-primary">Aprovar OS</button>
+            </form>
+            <form asp-action="Decidir" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <input type="hidden" name="aprovar" value="false" />
+                <button class="btn btn-outline-danger">Rejeitar</button>
+            </form>
+        }
+        @if (Model.Status == StatusOrdem.Aprovada && User.IsInRole("Engenheiro"))
+        {
+            <form asp-action="Iniciar" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button class="btn btn-primary">Iniciar manutenção</button>
+            </form>
+        }
+        @if (Model.Status == StatusOrdem.EmAndamento && User.IsInRole("Engenheiro"))
+        {
+            <form asp-action="Encerrar" method="post">
+                <input type="hidden" name="id" value="@Model.Id" />
+                <button class="btn btn-primary">Encerrar OS</button>
+            </form>
+        }
+        <a asp-action="Index" class="btn btn-outline-secondary">Voltar para a lista</a>
+    </div>
+</section>

@@ -1,0 +1,68 @@
+@model ProjetoIntegrador_Petroleo.ViewModels.UsuarioEditarVM
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    ViewData["Title"] = "Editar usuário";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">ADMINISTRAÇÃO</p>
+        <h1>Editar usuário</h1>
+        <p class="page-subtitle">Gerencie o perfil, o acesso e a senha deste usuário.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para usuários</a>
+</section>
+
+<section class="create-card create-card-compact">
+    <div class="create-card-heading">
+        <span class="create-card-icon" aria-hidden="true">♙</span>
+        <div>
+            <h2>Configurações da conta</h2>
+            <p>As alterações de acesso passam a valer após salvar.</p>
+        </div>
+    </div>
+
+    <form asp-action="Edit" method="post" class="create-form">
+        <div asp-validation-summary="All" class="validation-summary"></div>
+        <input type="hidden" asp-for="Id" />
+
+        <div class="create-field">
+            <label asp-for="Email" class="form-label"></label>
+            <input asp-for="Email" class="form-control" type="email" readonly />
+            <span class="create-field-hint">O e-mail identifica a conta e não pode ser alterado nesta tela.</span>
+        </div>
+
+        <div class="create-field">
+            <label asp-for="Perfil" class="form-label"></label>
+            <select asp-for="Perfil" asp-items="(List<SelectListItem>)ViewBag.Perfis" class="form-select">
+                <option value="">Selecione um perfil</option>
+            </select>
+            <span asp-validation-for="Perfil" class="field-validation"></span>
+        </div>
+
+        <div class="create-field">
+            <label asp-for="NovaSenha" class="form-label">Nova senha <span class="create-label-optional">opcional</span></label>
+            <input asp-for="NovaSenha" class="form-control" type="password" placeholder="Deixe em branco para manter a senha atual" autocomplete="new-password" />
+            <span asp-validation-for="NovaSenha" class="field-validation"></span>
+            <span class="create-field-hint">Se preenchida, deve ter pelo menos 8 caracteres e atender aos requisitos de senha do sistema.</span>
+        </div>
+
+        <label class="create-access-toggle" for="Ativo">
+            <span class="form-check-input-wrap"><input asp-for="Ativo" class="form-check-input" /></span>
+            <span>
+                <strong>Conta ativa</strong>
+                <small>Permite que este usuário entre na plataforma.</small>
+            </span>
+        </label>
+
+        <div class="create-form-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Salvar alterações <span aria-hidden="true">→</span></button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

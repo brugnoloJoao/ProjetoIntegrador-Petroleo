@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Models;
 using ProjetoIntegrador_Petroleo.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 [Authorize(Roles = "Engenheiro,Gestor")]
 public class ParametrosController : Controller
@@ -28,27 +29,10 @@ public class ParametrosController : Controller
         return View(parametros);
     }
 
-    // GET: PARAMETROS/Details/5
-    public async Task<IActionResult> Details(int? id)
-    {
-        if (id == null)
-        {
-            return NotFound();
-        }
-
-        var parametro = await _context.Parametros
-            .FirstOrDefaultAsync(m => m.Id == id);
-        if (parametro == null)
-        {
-            return NotFound();
-        }
-
-        return View(parametro);
-    }
-
     // GET: PARAMETROS/Create
-    public IActionResult Create()
+    public async Task<IActionResult> Create()
     {
+        await CarregarAtivosAsync();
         return View();
     }
 
@@ -57,14 +41,20 @@ public class ParametrosController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create([Bind("Id,AtivoId,Ativo,Nome,Unidade,LimiteAtencao,LimiteCritico,Leituras")] Parametro parametro)
+    public async Task<IActionResult> Create([Bind("AtivoId,Nome,Unidade,LimiteAtencao,LimiteCritico")] Parametro parametro)
     {
+        if (parametro.AtivoId <= 0 || !await _context.Ativos.AnyAsync(a => a.Id == parametro.AtivoId))
+        {
+            ModelState.AddModelError(nameof(parametro.AtivoId), "Selecione um ativo válido.");
+        }
+
         if (ModelState.IsValid)
         {
             _context.Add(parametro);
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+        await CarregarAtivosAsync(parametro.AtivoId);
         return View(parametro);
     }
 
@@ -81,6 +71,7 @@ public class ParametrosController : Controller
         {
             return NotFound();
         }
+        await CarregarAtivosAsync(parametro.AtivoId);
         return View(parametro);
     }
 
@@ -89,11 +80,16 @@ public class ParametrosController : Controller
     // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,AtivoId,Ativo,Nome,Unidade,LimiteAtencao,LimiteCritico,Leituras")] Parametro parametro)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,AtivoId,Nome,Unidade,LimiteAtencao,LimiteCritico")] Parametro parametro)
     {
         if (id != parametro.Id)
         {
             return NotFound();
+        }
+
+        if (parametro.AtivoId <= 0 || !await _context.Ativos.AnyAsync(a => a.Id == parametro.AtivoId))
+        {
+            ModelState.AddModelError(nameof(parametro.AtivoId), "Selecione um ativo válido.");
         }
 
         if (ModelState.IsValid)
@@ -116,6 +112,7 @@ public class ParametrosController : Controller
             }
             return RedirectToAction(nameof(Index));
         }
+        await CarregarAtivosAsync(parametro.AtivoId);
         return View(parametro);
     }
 
@@ -155,5 +152,20 @@ public class ParametrosController : Controller
     private bool ParametroExists(int? id)
     {
         return _context.Parametros.Any(e => e.Id == id);
+    }
+
+    private async Task CarregarAtivosAsync(int? selecionado = null)
+    {
+        var ativos = await _context.Ativos
+            .AsNoTracking()
+            .OrderBy(a => a.Nome)
+            .Select(a => new { a.Id, a.Nome, a.Tag })
+            .ToListAsync();
+
+        ViewBag.Ativos = new SelectList(
+            ativos.Select(a => new { a.Id, Nome = string.IsNullOrWhiteSpace(a.Tag) ? a.Nome : $"{a.Nome} · {a.Tag}" }),
+            "Id",
+            "Nome",
+            selecionado);
     }
 }

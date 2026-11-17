@@ -226,9 +226,6 @@ namespace ProjetoIntegrador_Petroleo.Migrations
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Alerta", b =>
                 {
-                    b.Property<bool>("Simulada")
-                        .HasColumnType("bit");
-
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -257,6 +254,9 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                     b.Property<int>("Severidade")
                         .HasColumnType("int");
 
+                    b.Property<bool>("Simulada")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -272,9 +272,6 @@ namespace ProjetoIntegrador_Petroleo.Migrations
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Anomalia", b =>
                 {
-                    b.Property<bool>("Simulada")
-                        .HasColumnType("bit");
-
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -294,6 +291,9 @@ namespace ProjetoIntegrador_Petroleo.Migrations
 
                     b.Property<double>("Score")
                         .HasColumnType("float");
+
+                    b.Property<bool>("Simulada")
+                        .HasColumnType("bit");
 
                     b.Property<double>("ValorMedido")
                         .HasColumnType("float");
@@ -338,9 +338,6 @@ namespace ProjetoIntegrador_Petroleo.Migrations
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Leitura", b =>
                 {
-                    b.Property<bool>("Simulada")
-                        .HasColumnType("bit");
-
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");
@@ -352,6 +349,9 @@ namespace ProjetoIntegrador_Petroleo.Migrations
 
                     b.Property<int>("ParametroId")
                         .HasColumnType("int");
+
+                    b.Property<bool>("Simulada")
+                        .HasColumnType("bit");
 
                     b.Property<double>("Valor")
                         .HasColumnType("float");
@@ -394,6 +394,10 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("OperadorId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("Prioridade")
                         .HasColumnType("int");
 
@@ -414,6 +418,8 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                     b.HasIndex("AlertaId");
 
                     b.HasIndex("AtivoId");
+
+                    b.HasIndex("OperadorId");
 
                     b.ToTable("OrdensServico");
                 });
@@ -548,9 +554,16 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "Operador")
+                        .WithMany()
+                        .HasForeignKey("OperadorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Alerta");
 
                     b.Navigation("Ativo");
+
+                    b.Navigation("Operador");
                 });
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Parametro", b =>

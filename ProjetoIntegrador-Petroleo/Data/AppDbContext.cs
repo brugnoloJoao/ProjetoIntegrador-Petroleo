@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -29,6 +29,12 @@ namespace ProjetoIntegrador_Petroleo.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);   // obrigatório se for IdentityDbContext
+
+            builder.Entity<OrdemServico>()
+                .HasOne(o => o.Operador)
+                .WithMany()
+                .HasForeignKey(o => o.OperadorId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             builder.Entity<Leitura>()
                 .HasIndex(l => new { l.ParametroId, l.DataHora });

@@ -52,7 +52,7 @@ else
                         <td>@a.Parametro?.Ativo?.Nome</td>
                         <td>@a.Parametro?.Nome</td>
                         <td>@a.ValorMedido.ToString("F1") @a.Parametro?.Unidade</td>
-                        <td><span class="badge @(a.Score >= 5 ? "bg-danger" : "bg-warning text-dark")">@a.Score.ToString("F1")σ</span></td>
+                        <td><span class="badge anomaly-score @(a.Score >= 5 ? "anomaly-score-critical" : "anomaly-score-warning")">@a.Score.ToString("F1")σ</span></td>
                         <td>@a.Descricao</td>
                     </tr>
                 }

@@ -4,50 +4,60 @@
     ViewData["Title"] = "Cadastrar ativo";
 }
 
-<h1>Cadastrar ativo</h1>
-
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Create">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <div class="mb-3">
-                <label asp-for="Nome" class="form-label"></label>
-                <input asp-for="Nome" class="form-control" />
-                <span asp-validation-for="Nome" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Tag" class="form-label"></label>
-                <input asp-for="Tag" class="form-control" />
-                <span asp-validation-for="Tag" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Tipo" class="form-label"></label>
-                <input asp-for="Tipo" class="form-control" />
-                <span asp-validation-for="Tipo" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Status" class="form-label"></label>
-                <select asp-for="Status"
-                        asp-items="Html.GetEnumSelectList<StatusAtivo>()"
-                        class="form-select"></select>
-                <span asp-validation-for="Status" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <button type="submit" class="btn btn-primary">Salvar</button>
-                <a asp-action="Index" class="btn btn-outline-secondary">Voltar para a lista</a>
-            </div>
-        </form>
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">INVENTÁRIO OPERACIONAL</p>
+        <h1>Cadastrar ativo</h1>
+        <p class="page-subtitle">Adicione um equipamento para acompanhar sua operação e manutenção.</p>
     </div>
-</div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ativos</a>
+</section>
+
+<section class="create-card">
+    <div class="create-card-heading">
+        <span class="create-card-icon" aria-hidden="true">◈</span>
+        <div>
+            <h2>Dados do equipamento</h2>
+            <p>Preencha as informações principais do ativo.</p>
+        </div>
+    </div>
+
+    <form asp-action="Create" method="post" class="create-form">
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+        <div class="create-form-grid">
+            <div class="create-field">
+                <label asp-for="Nome" class="form-label">Nome do equipamento</label>
+                <input asp-for="Nome" class="form-control" placeholder="Ex.: Bomba de transferência" autocomplete="off" />
+                <span asp-validation-for="Nome" class="field-validation"></span>
+            </div>
+
+            <div class="create-field">
+                <label asp-for="Tag" class="form-label">Tag de identificação</label>
+                <input asp-for="Tag" class="form-control" placeholder="Ex.: BOM-001" autocomplete="off" />
+                <span asp-validation-for="Tag" class="field-validation"></span>
+            </div>
+
+            <div class="create-field">
+                <label asp-for="Tipo" class="form-label">Tipo de equipamento</label>
+                <input asp-for="Tipo" class="form-control" placeholder="Ex.: Bomba centrífuga" />
+                <span asp-validation-for="Tipo" class="field-validation"></span>
+            </div>
+
+            <div class="create-field">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" asp-items="Html.GetEnumSelectList<StatusAtivo>()" class="form-select"></select>
+                <span asp-validation-for="Status" class="field-validation"></span>
+            </div>
+        </div>
+
+        <div class="create-form-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Cadastrar ativo <span aria-hidden="true">→</span></button>
+        </div>
+    </form>
+</section>
 
 @section Scripts {
-    @{
-        await Html.RenderPartialAsync("_ValidationScriptsPartial");
-    }
+    <partial name="_ValidationScriptsPartial" />
 }

@@ -84,7 +84,6 @@
                                 <td><span class="badge bg-warning">@item.LimiteAtencao.ToString("0.##") @item.Unidade</span></td>
                                 <td><span class="badge bg-danger">@item.LimiteCritico.ToString("0.##") @item.Unidade</span></td>
                                 <td class="text-end text-nowrap">
-                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Detalhes</a>
                                     @if (podeGerenciar)
                                     {
                                         <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Editar</a>

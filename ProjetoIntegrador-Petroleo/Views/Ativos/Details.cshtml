@@ -1,52 +1,85 @@
 @model ProjetoIntegrador_Petroleo.Models.Ativo
+@using ProjetoIntegrador_Petroleo.Models
 
 @{
-    ViewData["Title"] = "Details";
+    ViewData["Title"] = "Ativo · " + Model.Nome;
+    var statusClass = Model.Status switch
+    {
+        StatusAtivo.Operando => "bg-success",
+        StatusAtivo.EmManutencao => "bg-warning",
+        _ => "bg-secondary"
+    };
 }
 
-<h1>Details</h1>
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">INVENTÁRIO OPERACIONAL / ATIVO #@Model.Id</p>
+        <div class="detail-title-line">
+            <h1>@Model.Nome</h1>
+            <span class="badge @statusClass">@Model.Status</span>
+        </div>
+        <p class="page-subtitle">Informações operacionais e parâmetros configurados para este equipamento.</p>
+    </div>
+    <div class="detail-heading-actions">
+        <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ativos</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar ativo</a>
+    </div>
+</section>
 
-<div>
-    <h4>Ativo</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Nome)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Nome)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Tag)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Tag)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Tipo)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Tipo)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-    </dl>
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Parametros)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Parametros)
-        </dd>
-    </dl>
+<div class="detail-summary-grid">
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">⌑</span>
+        <div><span class="detail-summary-label">Tag</span><strong class="asset-tag">@Model.Tag</strong></div>
+    </article>
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">◈</span>
+        <div><span class="detail-summary-label">Tipo de equipamento</span><strong>@(string.IsNullOrWhiteSpace(Model.Tipo) ? "Não informado" : Model.Tipo)</strong></div>
+    </article>
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">⌁</span>
+        <div><span class="detail-summary-label">Parâmetros monitorados</span><strong>@Model.Parametros.Count</strong></div>
+    </article>
 </div>
-<div>
-    <a asp-action="Edit" asp-route-id="@Model?.Id">Edit</a> |
-    <a asp-action="Index">Back to List</a>
-</div>
+
+<section class="card detail-section-card">
+    <div class="detail-section-heading">
+        <div>
+            <p class="eyebrow">MONITORAMENTO</p>
+            <h2>Parâmetros deste ativo</h2>
+            <p class="section-kicker">Limites usados para acompanhar as condições do equipamento.</p>
+        </div>
+        <a asp-controller="Parametros" asp-action="Create" class="btn btn-outline-primary">＋ Novo parâmetro</a>
+    </div>
+
+    @if (Model.Parametros.Count == 0)
+    {
+        <div class="empty-state detail-empty-state">
+            <div class="empty-state-icon">⌁</div>
+            <h3 class="section-title">Nenhum parâmetro configurado</h3>
+            <p>Cadastre parâmetros para acompanhar as leituras deste equipamento.</p>
+            <a asp-controller="Parametros" asp-action="Create" class="btn btn-primary">Cadastrar parâmetro</a>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr><th>Parâmetro</th><th>Unidade</th><th>Limite de atenção</th><th>Limite crítico</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var parametro in Model.Parametros.OrderBy(p => p.Nome))
+                    {
+                        <tr>
+                            <td class="fw-semibold">@parametro.Nome</td>
+                            <td>@(string.IsNullOrWhiteSpace(parametro.Unidade) ? "—" : parametro.Unidade)</td>
+                            <td><span class="badge bg-warning">@parametro.LimiteAtencao.ToString("0.##") @parametro.Unidade</span></td>
+                            <td><span class="badge bg-danger">@parametro.LimiteCritico.ToString("0.##") @parametro.Unidade</span></td>
+                            <td class="text-end"><a asp-controller="Parametros" asp-action="Edit" asp-route-id="@parametro.Id" class="btn btn-sm btn-outline-primary">Editar</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

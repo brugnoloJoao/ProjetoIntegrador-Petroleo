@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Identity;
 
 namespace ProjetoIntegrador_Petroleo.Models
 {
@@ -23,6 +24,10 @@ namespace ProjetoIntegrador_Petroleo.Models
 
         public string SolicitanteId { get; set; } = "";   // Id do usuário (Identity)
         public string? AprovadorId { get; set; }
+
+        [MaxLength(450)]
+        public string? OperadorId { get; set; }
+        public IdentityUser? Operador { get; set; }
 
         public DateTime DataAbertura { get; set; } = DateTime.UtcNow;
         public DateTime? DataAprovacao { get; set; }

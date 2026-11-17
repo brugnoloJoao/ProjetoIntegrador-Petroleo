@@ -1,56 +1,64 @@
 @model ProjetoIntegrador_Petroleo.Models.Ativo
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Editar ativo";
 }
 
-<h1>Edit</h1>
-
-<h4>Ativo</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Nome" class="control-label"></label>
-                <input asp-for="Nome" class="form-control" />
-                <span asp-validation-for="Nome" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Tag" class="control-label"></label>
-                <input asp-for="Tag" class="form-control" />
-                <span asp-validation-for="Tag" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Tipo" class="control-label"></label>
-                <input asp-for="Tipo" class="form-control" />
-                <span asp-validation-for="Tipo" class="text-danger"></span>
-            </div>
-            <div class="mb-3">
-                <label asp-for="Status" class="form-label"></label>
-                <select asp-for="Status"
-                        asp-items="Html.GetEnumSelectList<StatusAtivo>()"
-                        class="form-select"></select>
-                <span asp-validation-for="Status" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Parametros" class="control-label"></label>
-                <input asp-for="Parametros" class="form-control" />
-                <span asp-validation-for="Parametros" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">INVENTÁRIO OPERACIONAL</p>
+        <h1>Editar ativo</h1>
+        <p class="page-subtitle">Atualize os dados e a disponibilidade deste equipamento.</p>
     </div>
-</div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ativos</a>
+</section>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
+<section class="create-card">
+    <div class="create-card-heading">
+        <span class="create-card-icon" aria-hidden="true">◈</span>
+        <div>
+            <h2>@Model.Nome</h2>
+            <p>Identificação do ativo <strong class="create-record-tag">@Model.Tag</strong></p>
+        </div>
+    </div>
+
+    <form asp-action="Edit" method="post" class="create-form">
+        <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+        <input type="hidden" asp-for="Id" />
+
+        <div class="create-form-grid">
+            <div class="create-field">
+                <label asp-for="Nome" class="form-label">Nome do equipamento</label>
+                <input asp-for="Nome" class="form-control" autocomplete="off" />
+                <span asp-validation-for="Nome" class="field-validation"></span>
+            </div>
+
+            <div class="create-field">
+                <label asp-for="Tag" class="form-label">Tag de identificação</label>
+                <input asp-for="Tag" class="form-control" autocomplete="off" />
+                <span asp-validation-for="Tag" class="field-validation"></span>
+            </div>
+
+            <div class="create-field">
+                <label asp-for="Tipo" class="form-label">Tipo de equipamento</label>
+                <input asp-for="Tipo" class="form-control" />
+                <span asp-validation-for="Tipo" class="field-validation"></span>
+            </div>
+
+            <div class="create-field">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" asp-items="Html.GetEnumSelectList<StatusAtivo>()" class="form-select"></select>
+                <span asp-validation-for="Status" class="field-validation"></span>
+            </div>
+        </div>
+
+        <div class="create-form-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Salvar alterações <span aria-hidden="true">→</span></button>
+        </div>
+    </form>
+</section>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
 }
