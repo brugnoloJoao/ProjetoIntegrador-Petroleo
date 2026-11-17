@@ -6,7 +6,9 @@ using ProjetoIntegrador_Petroleo.Data;
 using ProjetoIntegrador_Petroleo.Services;
 using ProjetoIntegrador_Petroleo.Models;
 using System.Diagnostics;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 
 
@@ -117,63 +119,87 @@ namespace ProjetoIntegrador_Petroleo.Controllers
                 .Take(5000)
                 .ToListAsync();
 
+            var agoraUtc = DateTime.UtcNow;
             var relatorio = new StringBuilder();
-            void Linha(params string?[] campos) => relatorio.AppendLine(string.Join(";", campos.Select(EscalarCsv)));
-            void Secao(string titulo, params string[] colunas)
+            var colunas = new[]
             {
-                Linha(titulo);
-                Linha(colunas);
+                "Tipo de registro", "ID", "Data/hora", "Equipamento", "Tag", "Item", "Status",
+                "Prioridade/severidade", "Valor", "Unidade", "Limite de atenção", "Limite crítico/violado",
+                "Desvios-padrão", "Solicitante", "Operador responsável", "Origem", "Descrição"
+            };
+            relatorio.AppendLine(string.Join(";", colunas.Select(EscalarCsv)));
+
+            void Adicionar(
+                string tipo,
+                string? id = null,
+                string? dataHora = null,
+                string? equipamento = null,
+                string? tag = null,
+                string? item = null,
+                string? status = null,
+                string? prioridade = null,
+                string? valor = null,
+                string? unidade = null,
+                string? limiteAtencao = null,
+                string? limiteCritico = null,
+                string? desviosPadrao = null,
+                string? solicitante = null,
+                string? operador = null,
+                string? origem = null,
+                string? descricao = null)
+            {
+                var campos = new string?[]
+                {
+                    tipo, id, dataHora, equipamento, tag, item, status, prioridade, valor, unidade,
+                    limiteAtencao, limiteCritico, desviosPadrao, solicitante, operador, origem, descricao
+                };
+                relatorio.AppendLine(string.Join(";", campos.Select(EscalarCsv)));
             }
 
-            Linha("RELATÓRIO OPERACIONAL PETROSYNC");
-            Linha("Gerado em", DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss", cultura));
-            Linha("Leituras simuladas", incluirSimulados ? "Incluídas (simulação ativa)" : "Excluídas (simulação pausada)");
-            Linha("Observação", "Alertas e anomalias limitados aos 5.000 registros mais recentes de cada seção.");
-            Linha();
+            Adicionar("Relatório", item: "PetroSync · relatório operacional",
+                descricao: $"Gerado em {FormatarDataLocal(agoraUtc)} · Simulação {(incluirSimulados ? "ativa" : "pausada")}");
+            Adicionar("Resumo", item: "Ativos cadastrados", valor: ativos.Count.ToString(cultura), unidade: "registros");
+            Adicionar("Resumo", item: "Ativos operando", valor: ativos.Count(a => a.Status == StatusAtivo.Operando).ToString(cultura), unidade: "registros");
+            Adicionar("Resumo", item: "Parâmetros cadastrados", valor: parametros.Count.ToString(cultura), unidade: "registros");
+            Adicionar("Resumo", item: "Alertas ativos", valor: alertas.Count(a => a.Status == StatusAlerta.Ativo).ToString(cultura), unidade: "registros");
+            Adicionar("Resumo", item: "Anomalias exportadas", valor: anomalias.Count.ToString(cultura), unidade: "registros");
+            Adicionar("Resumo", item: "OS em aberto", valor: ordens.Count(o => o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada).ToString(cultura), unidade: "registros");
+            Adicionar("Informação", item: "Limite do relatório", descricao: "Até 5.000 alertas, anomalias e OS mais recentes por categoria.");
 
-            Secao("RESUMO", "Indicador", "Quantidade");
-            Linha("Ativos cadastrados", ativos.Count.ToString(cultura));
-            Linha("Ativos operando", ativos.Count(a => a.Status == StatusAtivo.Operando).ToString(cultura));
-            Linha("Alertas ativos", alertas.Count(a => a.Status == StatusAlerta.Ativo).ToString(cultura));
-            Linha("Anomalias", anomalias.Count.ToString(cultura));
-            Linha("Ordens de serviço em aberto", ordens.Count(o => o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada).ToString(cultura));
-            Linha();
-
-            Secao("ATIVOS", "ID", "Nome", "Tag", "Tipo", "Status");
             foreach (var ativo in ativos)
-                Linha(ativo.Id.ToString(cultura), ativo.Nome, ativo.Tag, ativo.Tipo, ativo.Status.ToString());
-            Linha();
+                Adicionar("Ativo", id: ativo.Id.ToString(cultura), equipamento: ativo.Nome, tag: ativo.Tag,
+                    item: ativo.Tipo, status: NomeExibicao(ativo.Status));
 
-            Secao("PARÂMETROS", "Ativo", "Tag", "Parâmetro", "Unidade", "Limite de atenção", "Limite crítico");
             foreach (var parametro in parametros)
-                Linha(parametro.Ativo?.Nome, parametro.Ativo?.Tag, parametro.Nome, parametro.Unidade,
-                    parametro.LimiteAtencao.ToString("0.##", cultura), parametro.LimiteCritico.ToString("0.##", cultura));
-            Linha();
+                Adicionar("Parâmetro", id: parametro.Id.ToString(cultura), equipamento: parametro.Ativo?.Nome,
+                    tag: parametro.Ativo?.Tag, item: parametro.Nome, unidade: parametro.Unidade,
+                    limiteAtencao: parametro.LimiteAtencao.ToString("0.##", cultura),
+                    limiteCritico: parametro.LimiteCritico.ToString("0.##", cultura));
 
-            Secao("ALERTAS", "Data/hora", "Ativo", "Parâmetro", "Severidade", "Status", "Valor", "Limite", "Origem");
             foreach (var alerta in alertas)
-                Linha(alerta.DataHora.ToString("dd/MM/yyyy HH:mm:ss", cultura), alerta.Parametro?.Ativo?.Nome,
-                    alerta.Parametro?.Nome, alerta.Severidade.ToString(), alerta.Status.ToString(),
-                    alerta.ValorMedido.ToString("0.##", cultura), alerta.LimiteViolado.ToString("0.##", cultura),
-                    alerta.Simulada ? "Simulada" : "Real");
-            Linha();
+                Adicionar("Alerta", id: alerta.Id.ToString(cultura), dataHora: FormatarDataLocal(alerta.DataHora),
+                    equipamento: alerta.Parametro?.Ativo?.Nome, tag: alerta.Parametro?.Ativo?.Tag,
+                    item: alerta.Parametro?.Nome, status: NomeExibicao(alerta.Status),
+                    prioridade: NomeExibicao(alerta.Severidade), valor: alerta.ValorMedido.ToString("0.##", cultura),
+                    unidade: alerta.Parametro?.Unidade, limiteCritico: alerta.LimiteViolado.ToString("0.##", cultura),
+                    origem: alerta.Simulada ? "Simulada" : "Real", descricao: alerta.Observacao);
 
-            Secao("ANOMALIAS", "Data/hora", "Ativo", "Parâmetro", "Valor", "Desvios-padrão", "Descrição", "Origem");
             foreach (var anomalia in anomalias)
-                Linha(anomalia.DataHora.ToString("dd/MM/yyyy HH:mm:ss", cultura), anomalia.Parametro?.Ativo?.Nome,
-                    anomalia.Parametro?.Nome, anomalia.ValorMedido.ToString("0.##", cultura),
-                    anomalia.Score.ToString("0.##", cultura), anomalia.Descricao,
-                    anomalia.Simulada ? "Simulada" : "Real");
-            Linha();
+                Adicionar("Anomalia", id: anomalia.Id.ToString(cultura), dataHora: FormatarDataLocal(anomalia.DataHora),
+                    equipamento: anomalia.Parametro?.Ativo?.Nome, tag: anomalia.Parametro?.Ativo?.Tag,
+                    item: anomalia.Parametro?.Nome, status: "Detectada",
+                    valor: anomalia.ValorMedido.ToString("0.##", cultura), unidade: anomalia.Parametro?.Unidade,
+                    desviosPadrao: anomalia.Score.ToString("0.##", cultura), origem: anomalia.Simulada ? "Simulada" : "Real",
+                    descricao: anomalia.Descricao);
 
-            Secao("ORDENS DE SERVIÇO", "ID", "Título", "Ativo", "Status", "Prioridade", "Solicitante", "Operador responsável", "Abertura");
             foreach (var ordem in ordens)
-                Linha(ordem.Id.ToString(cultura), ordem.Titulo, ordem.Ativo?.Nome, ordem.Status.ToString(),
-                    ordem.Prioridade.ToString(), ordem.SolicitanteId, ordem.Operador?.Email,
-                    ordem.DataAbertura.ToString("dd/MM/yyyy HH:mm:ss", cultura));
+                Adicionar("Ordem de serviço", id: ordem.Id.ToString(cultura), dataHora: FormatarDataLocal(ordem.DataAbertura),
+                    equipamento: ordem.Ativo?.Nome, tag: ordem.Ativo?.Tag, item: ordem.Titulo,
+                    status: NomeExibicao(ordem.Status), prioridade: NomeExibicao(ordem.Prioridade),
+                    solicitante: ordem.SolicitanteId, operador: ordem.Operador?.Email, descricao: ordem.Descricao);
 
             var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(relatorio.ToString())).ToArray();
-            return File(bytes, "text/csv; charset=utf-8", $"relatorio_petrosync_{DateTime.Now:yyyyMMdd_HHmm}.csv");
+            return File(bytes, "text/csv; charset=utf-8", $"relatorio_petrosync_{agoraUtc:yyyyMMdd_HHmm}.csv");
         }
 
         private static string EscalarCsv(string? valor)
@@ -182,6 +208,19 @@ namespace ProjetoIntegrador_Petroleo.Controllers
             return valor.Contains(';') || valor.Contains('"') || valor.Contains('\r') || valor.Contains('\n')
                 ? $"\"{valor.Replace("\"", "\"\"")}\""
                 : valor;
+        }
+
+        private static string FormatarDataLocal(DateTime dataUtc)
+        {
+            var fuso = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(dataUtc, DateTimeKind.Utc), fuso)
+                .ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.GetCultureInfo("pt-BR"));
+        }
+
+        private static string NomeExibicao<TEnum>(TEnum valor) where TEnum : struct, Enum
+        {
+            var membro = typeof(TEnum).GetMember(valor.ToString()).FirstOrDefault();
+            return membro?.GetCustomAttribute<DisplayAttribute>()?.GetName() ?? valor.ToString();
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
