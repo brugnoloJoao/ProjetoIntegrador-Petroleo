@@ -4,12 +4,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Data;
 using ProjetoIntegrador_Petroleo.Models;
+using ProjetoIntegrador_Petroleo.Services;
 
 [Authorize]
 public class AlertasController : Controller
 {
     private readonly AppDbContext _db;
-    public AlertasController(AppDbContext db) => _db = db;
+    private readonly SimuladorEstado _simulador;
+    public AlertasController(AppDbContext db, SimuladorEstado simulador)
+    {
+        _db = db;
+        _simulador = simulador;
+    }
 
     public async Task<IActionResult> Index(StatusAlerta? status)
     {
@@ -17,6 +23,9 @@ public class AlertasController : Controller
             .Include(a => a.Parametro).ThenInclude(p => p!.Ativo)
             .AsNoTracking()
             .AsQueryable();
+
+        if (!_simulador.Ativo)
+            query = query.Where(a => !a.Simulada);
 
         if (status != null)
             query = query.Where(a => a.Status == status);
@@ -69,7 +78,7 @@ public class AlertasController : Controller
 
         alerta.Observacao = observacao.Trim();
         alerta.ReconhecidoPorId = User.Identity?.Name ?? "Usuário";
-        alerta.ReconhecidoEm = DateTime.Now;
+        alerta.ReconhecidoEm = DateTime.UtcNow;
 
         // Se o valor já normalizou, só registra a observação e mantém "Normalizado"
         if (alerta.Status == StatusAlerta.Ativo)

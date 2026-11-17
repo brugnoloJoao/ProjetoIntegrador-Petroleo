@@ -1,6 +1,9 @@
 ﻿@model ProjetoIntegrador_Petroleo.ViewModels.HistoricoVM
 @{
     ViewData["Title"] = "Histórico";
+    var fusoUsuario = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
+    var deLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(Model.De, DateTimeKind.Utc), fusoUsuario);
+    var ateLocal = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(Model.Ate, DateTimeKind.Utc), fusoUsuario);
 }
 
 <h1>Histórico de leituras</h1>
@@ -20,11 +23,11 @@
     </div>
     <div class="col-md-2">
         <label class="form-label">De</label>
-        <input type="datetime-local" name="de" class="form-control" value="@Model.De.ToString("yyyy-MM-ddTHH:mm")" />
+        <input type="datetime-local" name="de" class="form-control" value="@deLocal.ToString("yyyy-MM-ddTHH:mm")" />
     </div>
     <div class="col-md-2">
         <label class="form-label">Até</label>
-        <input type="datetime-local" name="ate" class="form-control" value="@Model.Ate.ToString("yyyy-MM-ddTHH:mm")" />
+        <input type="datetime-local" name="ate" class="form-control" value="@ateLocal.ToString("yyyy-MM-ddTHH:mm")" />
     </div>
     <div class="col-md-2 d-flex gap-2">
         <button type="submit" class="btn btn-primary">Consultar</button>
@@ -37,11 +40,19 @@
 }
 else if (Model.Parametro == null)
 {
-    <p class="text-muted">Selecione um equipamento e um parâmetro para consultar o histórico.</p>
+    <div class="empty-state empty-notice">
+        <div class="empty-state-icon">◷</div>
+        <h2 class="section-title">Nenhum histórico selecionado</h2>
+        <p>Escolha um equipamento e um parâmetro para consultar as leituras.</p>
+    </div>
 }
 else if (Model.TotalLeituras == 0)
 {
-    <p class="text-muted">Sem dados disponíveis para o período selecionado.</p>
+    <div class="empty-state empty-notice">
+        <div class="empty-state-icon">◷</div>
+        <h2 class="section-title">Sem leituras neste período</h2>
+        <p>Não há dados disponíveis para os filtros selecionados.</p>
+    </div>
 }
 else
 {
@@ -86,8 +97,8 @@ else
         <small class="text-muted">Consulta executada em @Model.TempoConsultaMs ms</small>
         <a class="btn btn-sm btn-outline-secondary" asp-action="Exportar"
            asp-route-parametroId="@Model.ParametroId"
-           asp-route-de="@Model.De.ToString("yyyy-MM-ddTHH:mm")"
-           asp-route-ate="@Model.Ate.ToString("yyyy-MM-ddTHH:mm")">Exportar CSV</a>
+           asp-route-de="@deLocal.ToString("yyyy-MM-ddTHH:mm")"
+           asp-route-ate="@ateLocal.ToString("yyyy-MM-ddTHH:mm")">Exportar CSV</a>
     </div>
 
     <div class="table-responsive">
@@ -97,7 +108,7 @@ else
                 @foreach (var l in Model.Linhas)
                 {
                     <tr>
-                        <td>@l.DataHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td>@TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(l.DataHora, DateTimeKind.Utc), fusoUsuario).ToString("dd/MM/yyyy HH:mm:ss")</td>
                         <td>@l.Valor.ToString("F2") @Model.Parametro.Unidade</td>
                         <td>
                             @if (l.Valor >= Model.Parametro.LimiteCritico)
@@ -123,8 +134,8 @@ else
 
     <nav class="d-flex justify-content-between align-items-center">
         @{
-            var de = Model.De.ToString("yyyy-MM-ddTHH:mm");
-            var ate = Model.Ate.ToString("yyyy-MM-ddTHH:mm");
+            var de = deLocal.ToString("yyyy-MM-ddTHH:mm");
+            var ate = ateLocal.ToString("yyyy-MM-ddTHH:mm");
         }
         @if (Model.Pagina > 1)
         {

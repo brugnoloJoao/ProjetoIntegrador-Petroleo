@@ -4,10 +4,11 @@
 
 @{
     ViewData["Title"] = "Alertas";
+    var fusoUsuario = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
     var filtro = ViewData["Filtro"] as string ?? "";
 }
 
-<h1>Alertas</h1>
+<div class="page-heading"><div><p class="eyebrow">Central de eventos</p><h1>Alertas</h1><p class="page-subtitle">Acompanhe desvios e ocorrências dos equipamentos monitorados.</p></div></div>
 
 @if (TempData["Sucesso"] != null)
 {
@@ -18,12 +19,7 @@
     <div class="alert alert-warning">@TempData["Aviso"]</div>
 }
 
-<div class="btn-group mb-3">
-    <a class="btn btn-outline-secondary @(filtro == "" ? "active" : "")" asp-action="Index">Todos</a>
-    <a class="btn btn-outline-secondary @(filtro == "Ativo" ? "active" : "")" asp-action="Index" asp-route-status="Ativo">Ativos</a>
-    <a class="btn btn-outline-secondary @(filtro == "Reconhecido" ? "active" : "")" asp-action="Index" asp-route-status="Reconhecido">Reconhecidos</a>
-    <a class="btn btn-outline-secondary @(filtro == "Normalizado" ? "active" : "")" asp-action="Index" asp-route-status="Normalizado">Normalizados</a>
-</div>
+<div id="alert-filters-app" class="mb-3" data-status="@filtro"></div>
 
 @if (!Model.Any())
 {
@@ -48,7 +44,7 @@ else
             <tbody>
                 @foreach (var a in Model)
                 {
-                    <tr>
+                    <tr data-alert-row data-status="@a.Status" data-search="@($"{a.Parametro?.Ativo?.Nome} {a.Parametro?.Ativo?.Tag} {a.Parametro?.Nome} {a.Status}")">
                         <td>
                             @if (a.Severidade == Severidade.Critico)
                             {
@@ -62,7 +58,7 @@ else
 
                         <td>
                             @a.Parametro?.Ativo?.Nome
-                            <small class="text-muted">(@a.Parametro?.Ativo?.Tag)</small>
+                            <small class="asset-tag">@a.Parametro?.Ativo?.Tag</small>
                         </td>
 
                         <td>@a.Parametro?.Nome</td>
@@ -71,7 +67,7 @@ else
 
                         <td>@a.LimiteViolado.ToString("F1") @a.Parametro?.Unidade</td>
 
-                        <td>@a.DataHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td>@TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(a.DataHora, DateTimeKind.Utc), fusoUsuario).ToString("dd/MM/yyyy HH:mm:ss")</td>
 
                         <td>
                             <span class="badge @(a.Status == StatusAlerta.Ativo ? "bg-danger" : a.Status == StatusAlerta.Reconhecido ? "bg-primary" : "bg-secondary")">
@@ -90,7 +86,7 @@ else
                             {
                                 <small class="text-muted" title="@a.Observacao">
                                     por @a.ReconhecidoPorId<br />
-                                    @a.ReconhecidoEm?.ToString("dd/MM HH:mm")
+                                    @TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(a.ReconhecidoEm.Value, DateTimeKind.Utc), fusoUsuario).ToString("dd/MM HH:mm")
                                 </small>
                             }
 
@@ -112,6 +108,7 @@ else
 }
 
 @section Scripts {
+    <script type="module" src="~/dist/filters.js" asp-append-version="true"></script>
     <script>
         setTimeout(() => location.reload(), 30000);
     </script> @* atualiza a cada 30s *@

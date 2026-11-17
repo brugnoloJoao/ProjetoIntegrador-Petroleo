@@ -1,37 +1,67 @@
-﻿@model IEnumerable<ProjetoIntegrador_Petroleo.ViewModels.UsuarioListarVM>
+@model IEnumerable<ProjetoIntegrador_Petroleo.ViewModels.UsuarioListarVM>
 @{
     ViewData["Title"] = "Usuários";
+    var usuarios = Model.ToList();
 }
 
-<h1>Usuários</h1>
+<section class="page-heading">
+    <div>
+        <span class="eyebrow">ADMINISTRAÇÃO</span>
+        <h1>Usuários</h1>
+        <p class="page-subtitle">Gerencie os acessos e perfis da equipe PetroSync.</p>
+    </div>
+    <a class="btn btn-primary" asp-action="Create">＋ Novo usuário</a>
+</section>
+
 @if (TempData["Sucesso"] != null)
 {
     <div class="alert alert-success">@TempData["Sucesso"]</div>
 }
 
-<p><a class="btn btn-primary" asp-action="Create">Novo usuário</a></p>
-
-<table class="table table-hover align-middle">
-    <thead><tr><th>E-mail</th><th>Perfil</th><th>Situação</th><th></th></tr></thead>
-    <tbody>
-        @foreach (var u in Model)
-        {
-            <tr>
-                <td>@u.Email</td>
-                <td>@u.Perfil</td>
-                <td>
-                    @if (u.Ativo)
+<section class="card">
+    @if (usuarios.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon">♙</div>
+            <h2 class="section-title">Nenhum usuário cadastrado</h2>
+            <p>Cadastre usuários para conceder acesso ao sistema.</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">E-mail</th>
+                        <th scope="col">Perfil</th>
+                        <th scope="col">Situação</th>
+                        <th scope="col" class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var usuario in usuarios)
                     {
-                        <span class="badge bg-success">Ativo</span>
+                        <tr>
+                            <td class="fw-semibold">@usuario.Email</td>
+                            <td><span class="badge bg-secondary">@usuario.Perfil</span></td>
+                            <td>
+                                @if (usuario.Ativo)
+                                {
+                                    <span class="badge bg-success">Ativo</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Desativado</span>
+                                }
+                            </td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@usuario.Id">Editar</a>
+                            </td>
+                        </tr>
                     }
-                    else
-                    {
-
-                        <span class="badge bg-secondary">Desativado</span>
-                    }
-                </td>
-                <td><a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@u.Id">Editar</a></td>
-            </tr>
-        }
-    </tbody>
-</table>
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

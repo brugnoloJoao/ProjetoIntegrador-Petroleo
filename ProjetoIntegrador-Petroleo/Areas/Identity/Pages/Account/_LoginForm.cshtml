@@ -1,0 +1,38 @@
+@model AccountLoginModel
+
+<div class="ps-card-kicker">ACESSO À PLATAFORMA</div>
+<div class="ps-secure-note"><span class="ps-secure-icon">⌑</span><span>Acesso seguro<small>Entre com suas credenciais corporativas</small></span></div>
+
+<form method="post" asp-route-returnUrl="@Model.ReturnUrl" class="ps-login-form">
+    <div asp-validation-summary="ModelOnly" class="ps-error" role="alert"></div>
+    <div class="ps-field">
+        <label asp-for="Input.Email">E-mail</label>
+        <input asp-for="Input.Email" type="email" autocomplete="username" placeholder="seuemail@petrosync.com" autofocus />
+        <span asp-validation-for="Input.Email" class="ps-validation"></span>
+    </div>
+    <div class="ps-field">
+        <label asp-for="Input.Password">Senha</label>
+        <div class="ps-password-wrap">
+            <input asp-for="Input.Password" autocomplete="current-password" placeholder="Digite sua senha" />
+            <button type="button" class="ps-toggle-password" id="ps-toggle-password" aria-controls="Input_Password" aria-label="Mostrar senha">Mostrar</button>
+        </div>
+        <span asp-validation-for="Input.Password" class="ps-validation"></span>
+    </div>
+    <label class="ps-remember"><input asp-for="Input.RememberMe" /><span>Manter conectado neste dispositivo</span></label>
+    <button type="submit" class="ps-submit">Entrar na plataforma <span aria-hidden="true">→</span></button>
+</form>
+<div class="ps-disclaimer"><span class="ps-lock">▣</span> Ambiente integrado · Conexão protegida</div>
+
+<script>
+    (() => {
+        const button = document.getElementById('ps-toggle-password');
+        const input = document.getElementById('Input_Password');
+        if (!button || !input) return;
+        button.addEventListener('click', () => {
+            const reveal = input.type === 'password';
+            input.type = reveal ? 'text' : 'password';
+            button.textContent = reveal ? 'Ocultar' : 'Mostrar';
+            button.setAttribute('aria-label', reveal ? 'Ocultar senha' : 'Mostrar senha');
+        });
+    })();
+</script>

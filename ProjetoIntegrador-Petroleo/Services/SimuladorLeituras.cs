@@ -13,6 +13,7 @@ public class SimuladorLeituras : BackgroundService
     private readonly ILogger<SimuladorLeituras> _logger;
     private readonly IHubContext<DashboardHub> _hub;
     private readonly IConfiguration _config;
+    private readonly SimuladorEstado _estado;
 
     // Guarda os picos em andamento:
     // parametroId -> (ciclos restantes, valor do pico)
@@ -22,22 +23,19 @@ public class SimuladorLeituras : BackgroundService
         IServiceScopeFactory scopeFactory,
         ILogger<SimuladorLeituras> logger,
         IHubContext<DashboardHub> hub,
-        IConfiguration config)
+        IConfiguration config,
+        SimuladorEstado estado)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
         _hub = hub;
         _config = config;
+        _estado = estado;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        // Permite desativar o simulador por configuração.
-        if (!_config.GetValue<bool>("Simulador:Ativo", true))
-        {
-            _logger.LogInformation("Simulador de leituras desativado.");
-            return;
-        }
+        _estado.Ativo = _config.GetValue<bool>("Simulador:Ativo", true);
 
         var segundos = _config.GetValue<int>(
             "Simulador:IntervaloSegundos", 5);
@@ -57,7 +55,8 @@ public class SimuladorLeituras : BackgroundService
         {
             try
             {
-                await GerarCicloAsync(ct);
+                if (_estado.Ativo)
+                    await GerarCicloAsync(ct);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
             {
@@ -96,7 +95,8 @@ public class SimuladorLeituras : BackgroundService
             {
                 ParametroId = p.Id,
                 Valor = valor,
-                DataHora = agora
+                DataHora = agora,
+                Simulada = true
             });
 
             await AvaliarAlertaAsync(db, p, valor, agora, ct);
@@ -197,7 +197,8 @@ public class SimuladorLeituras : BackgroundService
                 Status = StatusAlerta.Ativo,
                 ValorMedido = valor,
                 LimiteViolado = limite,
-                DataHora = agora
+                DataHora = agora,
+                Simulada = true
             });
         }
         else if (sev == Severidade.Critico
@@ -259,6 +260,7 @@ public class SimuladorLeituras : BackgroundService
             ValorMedido = valor,
             Score = Math.Round(z, 2),
             DataHora = agora,
+            Simulada = true,
             Descricao = $"Valor {valor:F1} {p.Unidade} fora do padrão recente " +
                         $"(média {media:F1}, {z:F1} desvios-padrão)."
         });

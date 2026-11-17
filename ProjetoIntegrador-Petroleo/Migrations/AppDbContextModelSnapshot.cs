@@ -226,6 +226,9 @@ namespace ProjetoIntegrador_Petroleo.Migrations
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Alerta", b =>
                 {
+                    b.Property<bool>("Simulada")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -269,6 +272,9 @@ namespace ProjetoIntegrador_Petroleo.Migrations
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Anomalia", b =>
                 {
+                    b.Property<bool>("Simulada")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
@@ -332,6 +338,9 @@ namespace ProjetoIntegrador_Petroleo.Migrations
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Leitura", b =>
                 {
+                    b.Property<bool>("Simulada")
+                        .HasColumnType("bit");
+
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint");

@@ -12,6 +12,7 @@ namespace ProjetoIntegrador_Petroleo.Models
         public double ValorMedido { get; set; }
         public double Score { get; set; }           // quantos desvios-padrão da média
         public DateTime DataHora { get; set; }
+        public bool Simulada { get; set; }
 
         [StringLength(300)]
         public string Descricao { get; set; } = "";

@@ -5,8 +5,8 @@
     var filtro = ViewData["Filtro"] as string ?? "";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="mb-0">Ordens de Serviço</h1>
+<div class="page-heading">
+    <div><p class="eyebrow">Planejamento de manutenção</p><h1>Ordens de serviço</h1><p class="page-subtitle">Acompanhe prioridades e andamento das manutenções.</p></div>
     @if (User.IsInRole("Engenheiro"))
     {
         <a class="btn btn-primary" asp-action="Create">Nova OS</a>
@@ -22,18 +22,15 @@
     <div class="alert alert-warning">@TempData["Aviso"]</div>
 }
 
-<div class="btn-group mb-3 flex-wrap">
-    <a class="btn btn-outline-secondary @(filtro == "" ? "active" : "")" asp-action="Index">Todas</a>
-    @foreach (var s in Enum.GetValues<StatusOrdem>())
-    {
-        <a class="btn btn-outline-secondary @(filtro == s.ToString() ? "active" : "")"
-           asp-action="Index" asp-route-status="@s">@s</a>
-    }
-</div>
+<div id="os-filters-app" class="mb-3" data-status="@filtro" data-statuses="@string.Join(",", Enum.GetNames<StatusOrdem>())"></div>
 
 @if (!Model.Any())
 {
-    <p class="text-muted">Nenhuma ordem de serviço encontrada.</p>
+    <div class="empty-state empty-notice">
+        <div class="empty-state-icon">▤</div>
+        <h2 class="section-title">Nenhuma ordem de serviço cadastrada</h2>
+        <p>As ordens de serviço abertas aparecerão aqui para acompanhamento.</p>
+    </div>
 }
 else
 {
@@ -45,7 +42,7 @@ else
             <tbody>
                 @foreach (var o in Model)
                 {
-                    <tr>
+                    <tr data-order-row data-status="@o.Status" data-search="@($"{o.Id} {o.Titulo} {o.Ativo?.Nome} {o.Prioridade} {o.Status}")">
                         <td>@o.Id</td>
                         <td>@o.Titulo</td>
                         <td>@o.Ativo?.Nome</td>
@@ -69,4 +66,8 @@ else
             </tbody>
         </table>
     </div>
+}
+
+@section Scripts {
+    <script type="module" src="~/dist/filters.js" asp-append-version="true"></script>
 }

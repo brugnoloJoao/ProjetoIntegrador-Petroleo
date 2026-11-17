@@ -19,7 +19,11 @@ public class AtivosController : Controller
     [Authorize(Roles = "Engenheiro,Gestor")]
     public async Task<IActionResult> Index()    
     {
-        return View(await _context.Ativos.ToListAsync());
+        return View(await _context.Ativos
+            .AsNoTracking()
+            .Include(a => a.Parametros)
+            .OrderBy(a => a.Nome)
+            .ToListAsync());
     }
 
     // GET: ATIVOS/Details/5

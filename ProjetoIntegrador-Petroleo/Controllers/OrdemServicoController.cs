@@ -107,7 +107,7 @@ public class OrdemServicoController : Controller
 
         os.SolicitanteId = User.Identity?.Name ?? "Usuário";
         os.Status = StatusOrdem.Aberta;
-        os.DataAbertura = DateTime.Now;
+        os.DataAbertura = DateTime.UtcNow;
 
         _db.OrdensServico.Add(os);
         await _db.SaveChangesAsync();
@@ -132,7 +132,7 @@ public class OrdemServicoController : Controller
 
         os.Status = aprovar ? StatusOrdem.Aprovada : StatusOrdem.Rejeitada;
         os.AprovadorId = User.Identity?.Name;
-        os.DataAprovacao = DateTime.Now;
+        os.DataAprovacao = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
         TempData["Sucesso"] = aprovar ? "OS aprovada." : "OS rejeitada.";
@@ -176,7 +176,7 @@ public class OrdemServicoController : Controller
         }
 
         os.Status = StatusOrdem.Encerrada;
-        os.DataEncerramento = DateTime.Now;
+        os.DataEncerramento = DateTime.UtcNow;
         if (os.Ativo != null) os.Ativo.Status = StatusAtivo.Operando;
         await _db.SaveChangesAsync();
 

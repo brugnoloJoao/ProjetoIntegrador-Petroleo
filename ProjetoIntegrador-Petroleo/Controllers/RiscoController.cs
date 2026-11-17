@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Data;
 using ProjetoIntegrador_Petroleo.Models;
 using ProjetoIntegrador_Petroleo.ViewModels;
+using ProjetoIntegrador_Petroleo.Services;
 
 namespace ProjetoIntegrador_Petroleo.Controllers;
 
@@ -11,11 +12,16 @@ namespace ProjetoIntegrador_Petroleo.Controllers;
 public class RiscoController : Controller
 {
     private readonly AppDbContext _db;
-    public RiscoController(AppDbContext db) => _db = db;
+    private readonly SimuladorEstado _simulador;
+    public RiscoController(AppDbContext db, SimuladorEstado simulador)
+    {
+        _db = db;
+        _simulador = simulador;
+    }
 
     public async Task<IActionResult> Index()
     {
-        var agora = DateTime.Now;
+        var agora = DateTime.UtcNow;
         var desde = agora.AddDays(-7);
         var ultimaHora = agora.AddHours(-1);
 
@@ -23,17 +29,17 @@ public class RiscoController : Controller
         var parametros = await _db.Parametros.AsNoTracking().ToListAsync();
 
         var alertas = await _db.Alertas.AsNoTracking()
-            .Where(a => a.DataHora >= desde)
+            .Where(a => a.DataHora >= desde && (_simulador.Ativo || !a.Simulada))
             .Select(a => new { a.Parametro!.AtivoId, a.Severidade })
             .ToListAsync();
 
         var anomalias = await _db.Anomalias.AsNoTracking()
-            .Where(a => a.DataHora >= desde)
+            .Where(a => a.DataHora >= desde && (_simulador.Ativo || !a.Simulada))
             .Select(a => new { a.Parametro!.AtivoId })
             .ToListAsync();
 
         var medias = await _db.Leituras.AsNoTracking()
-            .Where(l => l.DataHora >= ultimaHora)
+            .Where(l => l.DataHora >= ultimaHora && (_simulador.Ativo || !l.Simulada))
             .GroupBy(l => l.ParametroId)
             .Select(g => new { ParametroId = g.Key, Media = g.Average(x => x.Valor) })
             .ToListAsync();

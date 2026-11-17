@@ -1,87 +1,101 @@
-
 @model IEnumerable<ProjetoIntegrador_Petroleo.Models.Parametro>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Parâmetros";
+    var parametros = Model.ToList();
+    var ativosMonitorados = parametros.Select(p => p.AtivoId).Distinct().Count();
+    var podeGerenciar = User.IsInRole("Engenheiro") || User.IsInRole("Gestor");
 }
 
-<h1>Index</h1>
+<section class="page-heading">
+    <div>
+        <span class="eyebrow">CONFIGURAÇÃO DA OPERAÇÃO</span>
+        <h1>Parâmetros</h1>
+        <p class="page-subtitle">Acompanhe as variáveis monitoradas e os limites de cada ativo.</p>
+    </div>
+    @if (podeGerenciar)
+    {
+        <a asp-action="Create" class="btn btn-primary">＋ Novo parâmetro</a>
+    }
+</section>
 
-@if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
-{
-    <p>
-        <a asp-action="Create">Create New</a>
-    </p>
-}
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-4">
+        <article class="card metric-card h-100">
+            <div class="card-body">
+                <div class="metric-label">Parâmetros cadastrados</div>
+                <div class="metric-value">@parametros.Count</div>
+                <div class="metric-note">Variáveis configuradas para monitoramento</div>
+            </div>
+        </article>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <article class="card metric-card h-100">
+            <div class="card-body">
+                <div class="metric-label">Ativos monitorados</div>
+                <div class="metric-value">@ativosMonitorados</div>
+                <div class="metric-note">Equipamentos com parâmetros cadastrados</div>
+            </div>
+        </article>
+    </div>
+</div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.AtivoId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Ativo)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Nome)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Unidade)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.LimiteAtencao)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.LimiteCritico)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Leituras)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
+<section class="card">
+    <div class="card-body p-0">
+        @if (parametros.Count == 0)
         {
-            <tr>
-                <td>
-                    @Html.DisplayFor(model => item.AtivoId)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.Ativo)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.Nome)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.Unidade)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.LimiteAtencao)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.LimiteCritico)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.Leituras)
-                </td>
-                <td>
-                    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
-                    {
-                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
-                        <span> | </span>
-                    }
-
-                    <a asp-action="Details" asp-route-id="@item.Id">Details</a>
-
-                    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
-                    {
-                        <span> | </span>
-                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-                    }
-                </td>
-            </tr>
+            <div class="empty-state">
+                <div class="empty-state-icon">⌁</div>
+                <h2 class="section-title">Nenhum parâmetro cadastrado</h2>
+                <p>Cadastre parâmetros para começar a acompanhar as leituras e os limites dos ativos.</p>
+                @if (podeGerenciar)
+                {
+                    <a asp-action="Create" class="btn btn-primary">Cadastrar parâmetro</a>
+                }
+            </div>
         }
-    </tbody>
-</table>
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Ativo</th>
+                            <th scope="col">Parâmetro</th>
+                            <th scope="col">Unidade</th>
+                            <th scope="col">Limite de atenção</th>
+                            <th scope="col">Limite crítico</th>
+                            <th scope="col" class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in parametros)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@(item.Ativo?.Nome ?? "Ativo não encontrado")</div>
+                                    @if (!string.IsNullOrWhiteSpace(item.Ativo?.Tag))
+                                    {
+                                        <small class="asset-tag">@item.Ativo.Tag</small>
+                                    }
+                                </td>
+                                <td class="fw-semibold">@item.Nome</td>
+                                <td>@(string.IsNullOrWhiteSpace(item.Unidade) ? "—" : item.Unidade)</td>
+                                <td><span class="badge bg-warning">@item.LimiteAtencao.ToString("0.##") @item.Unidade</span></td>
+                                <td><span class="badge bg-danger">@item.LimiteCritico.ToString("0.##") @item.Unidade</span></td>
+                                <td class="text-end text-nowrap">
+                                    <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Detalhes</a>
+                                    @if (podeGerenciar)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Editar</a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Excluir</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</section>

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Data;
+using ProjetoIntegrador_Petroleo.Services;
 using ProjetoIntegrador_Petroleo.Models;
 using System.Diagnostics;
 
@@ -13,7 +14,12 @@ namespace ProjetoIntegrador_Petroleo.Controllers
     public class HomeController : Controller
     {
         private readonly AppDbContext _db;
-        public HomeController(AppDbContext db) => _db = db;
+        private readonly SimuladorEstado _simulador;
+        public HomeController(AppDbContext db, SimuladorEstado simulador)
+        {
+            _db = db;
+            _simulador = simulador;
+        }
 
         [AllowAnonymous]
         public async Task<IActionResult> Index()
@@ -35,7 +41,8 @@ namespace ProjetoIntegrador_Petroleo.Controllers
         {
             var total = await _db.Ativos.CountAsync();
             var operando = await _db.Ativos.CountAsync(a => a.Status == StatusAtivo.Operando);
-            var alertas = await _db.Alertas.CountAsync(a => a.Status == StatusAlerta.Ativo);
+            var alertas = await _db.Alertas.CountAsync(a => a.Status == StatusAlerta.Ativo
+                && (_simulador.Ativo || !a.Simulada));
             var os = await _db.OrdensServico.CountAsync(o =>
                         o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada);
             var disp = total == 0 ? 0 : Math.Round(operando * 100.0 / total, 1);
@@ -50,7 +57,7 @@ namespace ProjetoIntegrador_Petroleo.Controllers
             if (p == null) return NotFound();
 
             var leituras = await _db.Leituras.AsNoTracking()
-                .Where(l => l.ParametroId == parametroId)
+                .Where(l => l.ParametroId == parametroId && (_simulador.Ativo || !l.Simulada))
                 .OrderByDescending(l => l.DataHora)
                 .Take(60)
                 .ToListAsync();

@@ -24,7 +24,7 @@ namespace ProjetoIntegrador_Petroleo.Models
         public string SolicitanteId { get; set; } = "";   // Id do usuário (Identity)
         public string? AprovadorId { get; set; }
 
-        public DateTime DataAbertura { get; set; } = DateTime.Now;
+        public DateTime DataAbertura { get; set; } = DateTime.UtcNow;
         public DateTime? DataAprovacao { get; set; }
         public DateTime? DataEncerramento { get; set; }
     }

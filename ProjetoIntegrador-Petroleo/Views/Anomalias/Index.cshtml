@@ -1,11 +1,17 @@
 ﻿@model IEnumerable<ProjetoIntegrador_Petroleo.Models.Anomalia>
 @{
     ViewData["Title"] = "Anomalias";
+    var fusoUsuario = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
     var dias = (int)ViewBag.Dias;
 }
 
-<h1>Anomalias detectadas</h1>
-<p class="text-muted">Leituras que se afastaram mais de 3 desvios-padrão do comportamento recente do parâmetro, mesmo sem ultrapassar um limite.</p>
+<section class="page-heading">
+    <div>
+        <span class="eyebrow">ANÁLISE DE TELEMETRIA</span>
+        <h1>Anomalias</h1>
+        <p class="page-subtitle">Leituras que se afastaram mais de 3 desvios-padrão do comportamento recente, mesmo sem ultrapassar um limite.</p>
+    </div>
+</section>
 
 <form method="get" class="row g-3 mb-4 align-items-end">
     <div class="col-md-4">
@@ -42,7 +48,7 @@ else
                 @foreach (var a in Model)
                 {
                     <tr>
-                        <td>@a.DataHora.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                        <td>@TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(a.DataHora, DateTimeKind.Utc), fusoUsuario).ToString("dd/MM/yyyy HH:mm:ss")</td>
                         <td>@a.Parametro?.Ativo?.Nome</td>
                         <td>@a.Parametro?.Nome</td>
                         <td>@a.ValorMedido.ToString("F1") @a.Parametro?.Unidade</td>

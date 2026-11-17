@@ -1,75 +1,96 @@
-
 @model IEnumerable<ProjetoIntegrador_Petroleo.Models.Ativo>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Ativos";
+    var ativos = Model.ToList();
+    var podeGerenciar = User.IsInRole("Engenheiro") || User.IsInRole("Gestor");
 }
 
-<h1>Index</h1>
+<section class="page-heading">
+    <div>
+        <span class="eyebrow">INVENTÁRIO OPERACIONAL</span>
+        <h1>Ativos</h1>
+        <p class="page-subtitle">Equipamentos monitorados e seus parâmetros de operação.</p>
+    </div>
+    @if (podeGerenciar)
+    {
+        <a class="btn btn-primary" asp-action="Create">＋ Cadastrar ativo</a>
+    }
+</section>
 
-@if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
-{
-    <p>
-        <a asp-action="Create">Create New</a>
-    </p>
+<section class="card">
+    @if (ativos.Count == 0)
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon">◈</div>
+            <h2 class="section-title">Nenhum ativo cadastrado</h2>
+            <p>Cadastre um equipamento para começar a acompanhar seus parâmetros e leituras.</p>
+            @if (podeGerenciar)
+            {
+                <a class="btn btn-primary" asp-action="Create">Cadastrar primeiro ativo</a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th scope="col">Equipamento</th>
+                        <th scope="col">Tag</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Parâmetros</th>
+                        <th scope="col" class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in ativos)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@item.Nome</td>
+                            <td><span class="asset-tag">@item.Tag</span></td>
+                            <td>@(string.IsNullOrWhiteSpace(item.Tipo) ? "—" : item.Tipo)</td>
+                            <td>
+                                @switch (item.Status)
+                                {
+                                    case ProjetoIntegrador_Petroleo.Models.StatusAtivo.Operando:
+                                        <span class="badge bg-success">Operando</span>
+                                        break;
+                                    case ProjetoIntegrador_Petroleo.Models.StatusAtivo.EmManutencao:
+                                        <span class="badge bg-warning">Em manutenção</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-secondary">Parado</span>
+                                        break;
+                                }
+                            </td>
+                            <td>@item.Parametros.Count</td>
+                            <td class="text-end">
+                                <div class="asset-actions">
+                                    <a class="btn btn-sm btn-outline-secondary" asp-action="Details" asp-route-id="@item.Id">Detalhes</a>
+                                    @if (podeGerenciar)
+                                    {
+                                        <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@item.Id">Editar</a>
+                                        <a class="btn btn-sm btn-outline-danger" asp-action="Delete" asp-route-id="@item.Id">Excluir</a>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@section Styles {
+    <style>
+        .asset-actions { display:flex; justify-content:flex-end; gap:.45rem; white-space:nowrap; }
+        .asset-actions .btn { padding:.4rem .65rem; }
+        .btn-outline-danger { color:#ff9292; border-color:#704148; }
+        .btn-outline-danger:hover { color:#fff; background:#792d35; border-color:#a3424b; }
+        @@media (max-width: 720px) { .asset-actions { justify-content:flex-start; } }
+    </style>
 }
-
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Nome)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Tag)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Tipo)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Status)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Parametros)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>
-                    @Html.DisplayFor(model => item.Nome)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.Tag)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.Tipo)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.Status)
-                </td>
-                <td>
-                    @Html.DisplayFor(model => item.Parametros)
-                </td>
-                <td>
-                    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
-                    {
-                        <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>
-                        <span> | </span>
-                    }
-
-                    <a asp-action="Details" asp-route-id="@item.Id">Details</a>
-
-                    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
-                    {
-                        <span> | </span>
-                        <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-                    }
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>

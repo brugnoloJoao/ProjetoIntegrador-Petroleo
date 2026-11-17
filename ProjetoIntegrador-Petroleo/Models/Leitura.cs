@@ -9,5 +9,7 @@
 
         public double Valor { get; set; }
         public DateTime DataHora { get; set; }
+
+        public bool Simulada { get; set; }
     }
 }

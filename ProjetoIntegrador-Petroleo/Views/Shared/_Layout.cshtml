@@ -1,65 +1,114 @@
-﻿<!DOCTYPE html>
-<html lang="en">
+@inject ProjetoIntegrador_Petroleo.Services.SimuladorEstado SimuladorEstado
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ProjetoIntegrador_Petroleo</title>
+    <title>@ViewData["Title"] · PetroSync</title>
     <script type="importmap"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/vue-filters.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ProjetoIntegrador_Petroleo.styles.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">ProjetoIntegrador_Petroleo</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>       
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        @if (User.Identity?.IsAuthenticated == true)
-                        {
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Dashboard</a></li>
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Ativos" asp-action="Index">Ativos</a></li>
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Parametros" asp-action="Index">Parâmetros</a></li>
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Alertas" asp-action="Index">Alertas</a></li>
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Historico" asp-action="Index">Histórico</a></li>
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="OrdemServico" asp-action="Index">Ordens de Serviço</a></li>
-                        }
-
-                        @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
-                        {
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Anomalias" asp-action="Index">Anomalias</a></li>
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Risco" asp-action="Index">Risco de falha</a></li>
-                        }
-
-                        @if (User.IsInRole("Gestor"))
-                        {
-                            <li class="nav-item"><a class="nav-link text-dark" asp-area="" asp-controller="Usuarios" asp-action="Index">Usuários</a></li>
-                        }
-                    </ul>
-                    <partial name="_LoginPartial" />
-                </div>
-            </div>
-        </nav>
+    <header class="mobile-header">
+        <button class="sidebar-menu-button" type="button" aria-label="Abrir navegação" aria-controls="appSidebar" aria-expanded="false" id="sidebarMenuButton">☰</button>
+        <a class="navbar-brand" asp-controller="Home" asp-action="Index"><span class="brand-mark">P</span><span>Petro<span class="brand-light">Sync</span></span></a>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    <div class="app-frame">
+        <aside class="app-sidebar" id="appSidebar">
+            <a class="sidebar-brand" asp-controller="Home" asp-action="Index" aria-label="PetroSync, início">
+                <span class="brand-mark">P</span><span class="sidebar-brand-copy">Petro<span class="brand-light">Sync</span><small>MANUTENÇÃO INTELIGENTE</small></span>
+            </a>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - ProjetoIntegrador_Petroleo - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+                var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+                <div class="sidebar-section-label">MENU PRINCIPAL</div>
+                <nav class="sidebar-nav" aria-label="Navegação principal">
+                    <a class="sidebar-link @(currentController == "Home" && currentAction == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index"><span class="sidebar-icon">⌂</span>Visão geral</a>
+                    <a class="sidebar-link @(currentController == "Ativos" ? "active" : "")" asp-controller="Ativos" asp-action="Index"><span class="sidebar-icon">◈</span>Ativos</a>
+                    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+                    {
+                        <a class="sidebar-link @(currentController == "Parametros" ? "active" : "")" asp-controller="Parametros" asp-action="Index"><span class="sidebar-icon">⌁</span>Parâmetros</a>
+                    }
+                    <a class="sidebar-link @(currentController == "Alertas" ? "active" : "")" asp-controller="Alertas" asp-action="Index"><span class="sidebar-icon">◉</span>Alertas</a>
+                    <a class="sidebar-link @(currentController == "Historico" ? "active" : "")" asp-controller="Historico" asp-action="Index"><span class="sidebar-icon">◷</span>Histórico</a>
+                    <a class="sidebar-link @(currentController == "OrdemServico" ? "active" : "")" asp-controller="OrdemServico" asp-action="Index"><span class="sidebar-icon">▤</span>Ordens de serviço</a>
+                    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+                    {
+                        <div class="sidebar-section-label sidebar-section-spaced">ANÁLISE</div>
+                        <a class="sidebar-link @(currentController == "Anomalias" ? "active" : "")" asp-controller="Anomalias" asp-action="Index"><span class="sidebar-icon">⌁</span>Anomalias</a>
+                        <a class="sidebar-link @(currentController == "Risco" ? "active" : "")" asp-controller="Risco" asp-action="Index"><span class="sidebar-icon">△</span>Risco</a>
+                    }
+                    @if (User.IsInRole("Gestor"))
+                    {
+                        <div class="sidebar-section-label sidebar-section-spaced">ADMINISTRAÇÃO</div>
+                        <a class="sidebar-link @(currentController == "Usuarios" ? "active" : "")" asp-controller="Usuarios" asp-action="Index"><span class="sidebar-icon">♙</span>Usuários</a>
+                    }
+                </nav>
+            }
+
+            <div class="sidebar-bottom">
+                @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+                {
+                    <form asp-controller="Simulador" asp-action="Alternar" method="post" class="sidebar-simulator">
+                        <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+                        <span class="simulator-state-dot @(SimuladorEstado.Ativo ? "is-on" : "")"></span>
+                        <span class="simulator-state-label">Simulação @(SimuladorEstado.Ativo ? "ativa" : "pausada")</span>
+                        <button type="submit" class="simulator-toggle-button" aria-label="@(SimuladorEstado.Ativo ? "Pausar" : "Ativar") leituras simuladas" title="@(SimuladorEstado.Ativo ? "Pausar" : "Ativar") leituras simuladas">
+                            @(SimuladorEstado.Ativo ? "Ⅱ" : "▶")
+                        </button>
+                    </form>
+                }
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="sidebar-account">
+                        <span class="user-avatar">@(User.Identity?.Name?.Substring(0, 1).ToUpperInvariant())</span>
+                        <span class="sidebar-account-name">@User.Identity?.Name</span>
+                        <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })" method="post">
+                            <button type="submit" class="sidebar-logout" title="Sair" aria-label="Sair">↗</button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <a class="btn btn-primary w-100" asp-area="Identity" asp-page="/Account/Login">Entrar</a>
+                }
+            </div>
+        </aside>
+
+        <div class="app-main">
+            <main role="main" class="app-shell page-content">@RenderBody()</main>
+            <footer class="site-footer"><div class="app-shell"><span>PetroSync <span class="footer-dot">·</span> Monitoramento inteligente de ativos</span><span>© 2026</span></div></footer>
         </div>
-    </footer>
+    </div>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        (() => {
+            const button = document.getElementById('sidebarMenuButton');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            const close = () => {
+                document.body.classList.remove('sidebar-open');
+                button?.setAttribute('aria-expanded', 'false');
+            };
+            button?.addEventListener('click', () => {
+                const open = document.body.classList.toggle('sidebar-open');
+                button.setAttribute('aria-expanded', String(open));
+            });
+            backdrop?.addEventListener('click', close);
+            document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
+        })();
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

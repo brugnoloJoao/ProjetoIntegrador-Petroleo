@@ -31,6 +31,7 @@ builder.Services.ConfigureApplicationCookie(o =>
     o.AccessDeniedPath = "/Identity/Account/AccessDenied";
 });
 
+builder.Services.AddSingleton<SimuladorEstado>();
 builder.Services.AddHostedService<SimuladorLeituras>();
 
 builder.Services.AddSignalR();
@@ -53,6 +54,10 @@ app.Use(async (ctx, next) =>
     }
     await next();
 });
+
+// Also serve physical files directly so newly added frontend assets remain available
+// even when a development static-asset manifest is stale.
+app.UseStaticFiles();
 
 app.UseRouting();
 
@@ -77,6 +82,7 @@ using (var scope = app.Services.CreateAsyncScope())
     await db.Database.MigrateAsync();
 
     await IdentitySeed.ExecutarAsync(scope.ServiceProvider);
+    await DemoDataSeed.ExecutarAsync(scope.ServiceProvider);
 }
 
 

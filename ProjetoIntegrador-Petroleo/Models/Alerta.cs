@@ -15,6 +15,7 @@ namespace ProjetoIntegrador_Petroleo.Models
         public double ValorMedido { get; set; }
         public double LimiteViolado { get; set; }
         public DateTime DataHora { get; set; }
+        public bool Simulada { get; set; }
 
         // Preenchidos no "Reconhecer" (UC02)
         [StringLength(500)]

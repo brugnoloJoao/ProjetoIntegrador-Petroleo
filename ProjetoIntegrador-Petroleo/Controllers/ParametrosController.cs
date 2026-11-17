@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Models;
 using ProjetoIntegrador_Petroleo.Data;
+using Microsoft.AspNetCore.Authorization;
 
+[Authorize(Roles = "Engenheiro,Gestor")]
 public class ParametrosController : Controller
 {
     private readonly AppDbContext _context;
@@ -14,9 +16,16 @@ public class ParametrosController : Controller
     }
 
     // GET: PARAMETROS
-    public async Task<IActionResult> Index()    
+    public async Task<IActionResult> Index()
     {
-        return View(await _context.Parametros.ToListAsync());
+        var parametros = await _context.Parametros
+            .AsNoTracking()
+            .Include(p => p.Ativo)
+            .OrderBy(p => p.Ativo!.Nome)
+            .ThenBy(p => p.Nome)
+            .ToListAsync();
+
+        return View(parametros);
     }
 
     // GET: PARAMETROS/Details/5

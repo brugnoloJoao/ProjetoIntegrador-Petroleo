@@ -1,0 +1,38 @@
+@page
+@model LoginaModel
+@{
+    Layout = "./_LoginLayout";
+    ViewData["Title"] = "Entrar";
+}
+<div class="ps-login">
+    <div id="login-three-background" aria-hidden="true"></div>
+    <header class="ps-top">
+        <a class="ps-brand" href="/" aria-label="PetroSync - página inicial">
+            <span class="ps-logo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M3 12h4l3-7 4 14 3-7h4" /></svg></span>
+            <span><strong>Petro<span>Sync</span></strong><small>MANUTENÇÃO INTELIGENTE</small></span>
+        </a>
+        <div class="ps-env"><i></i> PetroSync</div>
+    </header>
+
+    <main class="ps-main">
+        <section class="ps-intro">
+            <div class="ps-tag"><span></span> MONITORAMENTO DE ATIVOS</div>
+            <h1>Decisões melhores começam com <em>visibilidade.</em></h1>
+            <p>Monitore equipamentos e transforme dados em manutenção inteligente.</p>
+            <div class="ps-signal"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="ps-feature"><span>⌁</span><div><strong>Operação sob controle</strong><small>Dados, alertas e ativos em um só lugar.</small></div></div>
+        </section>
+
+        <section class="ps-card" aria-labelledby="login-title">
+            <h2 id="login-title">Entre no PetroSync</h2>
+            <p class="ps-card-sub">Informe seus dados para acessar o sistema.</p>
+            <partial name="_LoginForm" model="Model" />
+        </section>
+    </main>
+
+    <footer class="ps-foot"><span>© 2026 PetroSync</span><span>Manutenção preditiva</span></footer>
+</div>
+
+@section Scripts {
+    <script type="module" src="~/dist/loginBackground.js" asp-append-version="true"></script>
+}

@@ -7,23 +7,30 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Data;
 using ProjetoIntegrador_Petroleo.ViewModels;
+using ProjetoIntegrador_Petroleo.Services;
 
 namespace ProjetoIntegrador_Petroleo.Controllers;
 
 [Authorize]
 public class HistoricoController : Controller
 {
+    private static readonly TimeZoneInfo FusoUsuario = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
     private const int TamanhoPagina = 50;
     private const int PontosGrafico = 300;
 
     private readonly AppDbContext _db;
-    public HistoricoController(AppDbContext db) => _db = db;
+    private readonly SimuladorEstado _simulador;
+    public HistoricoController(AppDbContext db, SimuladorEstado simulador)
+    {
+        _db = db;
+        _simulador = simulador;
+    }
 
     public async Task<IActionResult> Index(int? ativoId, int? parametroId,
                                            DateTime? de, DateTime? ate, int pagina = 1)
     {
-        var fim = ate ?? DateTime.Now;
-        var inicio = de ?? fim.AddHours(-24);
+        var fim = ConverterEntradaUtc(ate);
+        var inicio = de.HasValue ? ConverterEntradaUtc(de) : fim.AddHours(-24);
 
         var vm = new HistoricoVM
         {
@@ -78,7 +85,8 @@ public class HistoricoController : Controller
         var sw = Stopwatch.StartNew();
 
         var baseQuery = _db.Leituras.AsNoTracking()
-            .Where(l => l.ParametroId == parametroId && l.DataHora >= inicio && l.DataHora <= fim);
+            .Where(l => l.ParametroId == parametroId && l.DataHora >= inicio && l.DataHora <= fim
+                && (_simulador.Ativo || !l.Simulada));
 
         // 1) Estatísticas do período
         var resumo = await baseQuery
@@ -119,7 +127,7 @@ public class HistoricoController : Controller
 
         foreach (var p in pontos)
         {
-            vm.Labels.Add(inicio.AddSeconds((double)p.Bucket * tam).ToString(formato));
+            vm.Labels.Add(ConverterParaHorarioLocal(inicio.AddSeconds((double)p.Bucket * tam)).ToString(formato));
             vm.Medias.Add(Math.Round(p.Media, 2));
             vm.Minimos.Add(Math.Round(p.Min, 2));
             vm.Maximos.Add(Math.Round(p.Max, 2));
@@ -145,13 +153,18 @@ public class HistoricoController : Controller
     [HttpGet]
     public async Task<IActionResult> Exportar(int parametroId, DateTime de, DateTime ate)
     {
+        de = ConverterEntradaUtc(de);
+        ate = ConverterEntradaUtc(ate);
+        if (ate < de) return BadRequest("A data final deve ser posterior à data inicial.");
+
         var p = await _db.Parametros.AsNoTracking()
             .Include(x => x.Ativo)
             .FirstOrDefaultAsync(x => x.Id == parametroId);
         if (p == null) return NotFound();
 
         var dados = await _db.Leituras.AsNoTracking()
-            .Where(l => l.ParametroId == parametroId && l.DataHora >= de && l.DataHora <= ate)
+            .Where(l => l.ParametroId == parametroId && l.DataHora >= de && l.DataHora <= ate
+                && (_simulador.Ativo || !l.Simulada))
             .OrderBy(l => l.DataHora)
             .Take(100000)
             .Select(l => new { l.DataHora, l.Valor })
@@ -166,4 +179,15 @@ public class HistoricoController : Controller
         var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
         return File(bytes, "text/csv", $"historico_{parametroId}_{de:yyyyMMdd}-{ate:yyyyMMdd}.csv");
     }
+
+    private static DateTime ConverterEntradaUtc(DateTime? dataLocal)
+    {
+        if (!dataLocal.HasValue) return DateTime.UtcNow;
+        if (dataLocal.Value.Kind == DateTimeKind.Utc) return dataLocal.Value;
+        return TimeZoneInfo.ConvertTimeToUtc(
+            DateTime.SpecifyKind(dataLocal.Value, DateTimeKind.Unspecified), FusoUsuario);
+    }
+
+    private static DateTime ConverterParaHorarioLocal(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), FusoUsuario);
 }
