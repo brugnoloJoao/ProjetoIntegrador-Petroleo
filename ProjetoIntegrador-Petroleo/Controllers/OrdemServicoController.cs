@@ -75,7 +75,7 @@ public class OrdemServicoController : Controller
 
     // ---------- Abrir OS (HU9) ----------
     [HttpGet]
-    [Authorize(Roles = "Engenheiro")]
+    [Authorize(Roles = "Engenheiro,Gestor")]
     public async Task<IActionResult> Create(int? alertaId, int? ativoId)
     {
         var os = new OrdemServico();
@@ -122,7 +122,7 @@ public class OrdemServicoController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    [Authorize(Roles = "Engenheiro")]
+    [Authorize(Roles = "Engenheiro,Gestor")]
     public async Task<IActionResult> Create(
         [Bind("AtivoId,AlertaId,Titulo,Descricao,Prioridade,OperadorId")] OrdemServico os)
     {
