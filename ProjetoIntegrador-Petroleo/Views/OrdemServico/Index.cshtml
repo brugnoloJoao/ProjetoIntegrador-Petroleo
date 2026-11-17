@@ -7,7 +7,7 @@
 
 <div class="page-heading">
     <div><p class="eyebrow">Planejamento de manutenção</p><h1>Ordens de serviço</h1><p class="page-subtitle">Acompanhe prioridades e andamento das manutenções.</p></div>
-    @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+    @if (User.IsInRole("Operador") || User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
     {
         <a class="btn btn-primary" asp-action="Create">＋ Cadastrar nova OS</a>
     }
@@ -30,7 +30,7 @@
         <div class="empty-state-icon">▤</div>
         <h2 class="section-title">Nenhuma ordem de serviço cadastrada</h2>
         <p>@(User.IsInRole("Operador") && !User.IsInRole("Engenheiro") && !User.IsInRole("Gestor") ? "As ordens atribuídas a você aparecerão aqui." : "As ordens de serviço abertas aparecerão aqui para acompanhamento.")</p>
-        @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+        @if (User.IsInRole("Operador") || User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
         {
             <a class="btn btn-primary" asp-action="Create">＋ Cadastrar nova OS</a>
         }

@@ -45,14 +45,24 @@
                 <span asp-validation-for="AtivoId" class="field-validation"></span>
             </div>
 
-            <div class="create-field create-field-wide">
-                <label asp-for="OperadorId" class="form-label">Operador responsável <span class="create-label-optional">opcional</span></label>
-                <select asp-for="OperadorId" asp-items="(SelectList)ViewBag.Operadores" class="form-select">
-                    <option value="">Atribuir depois</option>
-                </select>
-                <span asp-validation-for="OperadorId" class="field-validation"></span>
-                <span class="create-field-hint">O operador atribuído poderá acompanhar esta OS na própria lista.</span>
-            </div>
+            @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+            {
+                <div class="create-field create-field-wide">
+                    <label asp-for="OperadorId" class="form-label">Operador responsável <span class="create-label-optional">opcional</span></label>
+                    <select asp-for="OperadorId" asp-items="(SelectList)ViewBag.Operadores" class="form-select">
+                        <option value="">Atribuir depois</option>
+                    </select>
+                    <span asp-validation-for="OperadorId" class="field-validation"></span>
+                    <span class="create-field-hint">O operador atribuído poderá acompanhar esta OS na própria lista.</span>
+                </div>
+            }
+            else
+            {
+                <div class="create-context-note create-field-wide">
+                    <span aria-hidden="true">♙</span>
+                    Esta ordem será atribuída a você e aparecerá na sua lista de OS.
+                </div>
+            }
 
             <div class="create-field create-field-wide">
                 <label asp-for="Titulo" class="form-label">Título da ordem</label>

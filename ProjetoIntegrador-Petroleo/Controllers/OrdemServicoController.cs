@@ -75,10 +75,13 @@ public class OrdemServicoController : Controller
 
     // ---------- Abrir OS (HU9) ----------
     [HttpGet]
-    [Authorize(Roles = "Engenheiro,Gestor")]
+    [Authorize(Roles = "Operador,Engenheiro,Gestor")]
     public async Task<IActionResult> Create(int? alertaId, int? ativoId)
     {
         var os = new OrdemServico();
+        var podeAtribuirOperador = User.IsInRole("Engenheiro") || User.IsInRole("Gestor");
+        if (!podeAtribuirOperador)
+            os.OperadorId = _users.GetUserId(User);
 
         if (alertaId != null)
         {
@@ -117,18 +120,25 @@ public class OrdemServicoController : Controller
         }
 
         await CarregarAtivosAsync(os.AtivoId);
-        await CarregarOperadoresAsync(os.OperadorId);
+        if (podeAtribuirOperador)
+            await CarregarOperadoresAsync(os.OperadorId);
         return View(os);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
-    [Authorize(Roles = "Engenheiro,Gestor")]
+    [Authorize(Roles = "Operador,Engenheiro,Gestor")]
     public async Task<IActionResult> Create(
         [Bind("AtivoId,AlertaId,Titulo,Descricao,Prioridade,OperadorId")] OrdemServico os)
     {
         ModelState.Remove(nameof(OrdemServico.SolicitanteId));
 
-        if (!string.IsNullOrWhiteSpace(os.OperadorId) && !await OperadorValidoAsync(os.OperadorId))
+        var podeAtribuirOperador = User.IsInRole("Engenheiro") || User.IsInRole("Gestor");
+        if (!podeAtribuirOperador)
+        {
+            os.OperadorId = _users.GetUserId(User);
+            ModelState.Remove(nameof(OrdemServico.OperadorId));
+        }
+        else if (!string.IsNullOrWhiteSpace(os.OperadorId) && !await OperadorValidoAsync(os.OperadorId))
         {
             ModelState.AddModelError(nameof(os.OperadorId), "Selecione uma conta ativa com perfil de Operador.");
         }
@@ -136,7 +146,8 @@ public class OrdemServicoController : Controller
         if (!ModelState.IsValid)
         {
             await CarregarAtivosAsync(os.AtivoId);
-            await CarregarOperadoresAsync(os.OperadorId);
+            if (podeAtribuirOperador)
+                await CarregarOperadoresAsync(os.OperadorId);
             return View(os);
         }
 
