@@ -10,6 +10,7 @@
     window.petroSyncDashboard = @Html.Raw(Json.Serialize(new {
         indicatorsUrl = Url.Action("Indicadores", "Home"),
         historyUrl = Url.Action("Historico", "Home"),
+        exportUrl = User.Identity?.IsAuthenticated == true ? Url.Action("ExportarRelatorio", "Home") : null,
         hubUrl = "/hubs/dashboard",
         parameters = parametros
     }));

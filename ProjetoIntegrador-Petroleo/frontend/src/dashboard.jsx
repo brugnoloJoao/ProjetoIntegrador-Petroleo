@@ -21,6 +21,7 @@ function useDashboard() {
   const config = {
     indicatorsUrl: serverConfig.indicatorsUrl || serverConfig.IndicatorsUrl || '/Home/Indicadores',
     historyUrl: serverConfig.historyUrl || serverConfig.HistoryUrl || '/Home/Historico',
+    exportUrl: serverConfig.exportUrl || serverConfig.ExportUrl || '',
     hubUrl: serverConfig.hubUrl || serverConfig.HubUrl || '/hubs/dashboard',
     parameters: serverConfig.parameters || serverConfig.Parameters || [],
   };
@@ -104,7 +105,7 @@ function Dashboard() {
   return <div className="dashboard-react">
     <Suspense fallback={null}><ThreeBackground /></Suspense>
     <section className="dashboard-content">
-      <header className="dashboard-heading"><div><p className="dashboard-eyebrow"><i /> MONITORAMENTO DE ATIVOS</p><h1>Decisões melhores começam com <em>visibilidade.</em></h1><p className="dashboard-lead">Monitore equipamentos e transforme dados em manutenção inteligente.</p></div><div className="dashboard-status"><span className={`connection-pill ${status === 'Conectado' ? 'online' : ''}`}>{status}</span><small>Atualizado às {updatedAt}</small></div></header>
+      <header className="dashboard-heading"><div><p className="dashboard-eyebrow"><i /> MONITORAMENTO DE ATIVOS</p><h1>Decisões melhores começam com <em>visibilidade.</em></h1><p className="dashboard-lead">Monitore equipamentos e transforme dados em manutenção inteligente.</p></div><div className="dashboard-status"><div className="dashboard-status-actions">{config.exportUrl && <a className="dashboard-report-button" href={config.exportUrl}>↓ Exportar relatório</a>}<span className={`connection-pill ${status === 'Conectado' ? 'online' : ''}`}>{status}</span></div><small>Atualizado às {updatedAt}</small></div></header>
       <div className="dashboard-metrics">
         <MetricCard label="Ativos monitorados" value={metrics.total} note="Equipamentos cadastrados" icon="◉" />
         <MetricCard label="Em operação" value={metrics.operando} note="Ativos operacionais" icon="↗" />
