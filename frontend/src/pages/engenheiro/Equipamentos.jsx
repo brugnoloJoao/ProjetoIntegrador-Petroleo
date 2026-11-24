@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useEngenheiro } from "./EngenheiroContext";
+import BuscaEquipamentos from "../../components/BuscaEquipamentos/BuscaEquipamentos.jsx";
 
 const vazio = {
   id: "",
@@ -12,16 +13,10 @@ const vazio = {
 export default function Equipamentos() {
   const { equipamentos, salvarEquipamento } = useEngenheiro();
 
-  const [busca, setBusca] = useState("");
+  const [filtrados, setFiltrados] = useState(equipamentos);
   const [formulario, setFormulario] = useState(null);
   const [editando, setEditando] = useState(false);
   const [erro, setErro] = useState("");
-
-  const filtrados = equipamentos.filter((e) =>
-    `${e.id} ${e.nome}`
-      .toLowerCase()
-      .includes(busca.toLowerCase())
-  );
 
   function abrir(equipamento) {
     setFormulario(
@@ -67,7 +62,9 @@ export default function Equipamentos() {
         <span className="eng-eyebrow">
           ● GESTÃO DE ATIVOS
         </span>
+
         <h1>Equipamentos</h1>
+
         <p>
           Consulte e organize os equipamentos cadastrados.
         </p>
@@ -88,18 +85,18 @@ export default function Equipamentos() {
           </button>
         </div>
 
-        <input
-          className="eng-search"
-          placeholder="Buscar por nome ou código..."
-          aria-label="Buscar equipamentos"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
+        {/* Campo de busca desenvolvido em Vue.js */}
+
+        <BuscaEquipamentos
+          equipamentos={equipamentos}
+          onFiltrar={setFiltrados}
         />
 
         {filtrados.map((e) => (
           <div className="eng-item" key={e.id}>
             <div>
               <strong>{e.nome}</strong>
+
               <small>
                 {e.id} · {e.temperatura} °C · {e.vibracao} mm/s
               </small>
