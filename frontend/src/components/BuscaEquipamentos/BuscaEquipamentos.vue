@@ -51,7 +51,7 @@ function limparBusca() {
         v-model="busca"
         class="eng-search"
         type="text"
-        placeholder="Buscar equipamentos - Vue.js"
+        placeholder="Buscar equipamentos por código ou nome"
         aria-label="Buscar equipamentos"
         autocomplete="off"
       />
@@ -72,10 +72,6 @@ function limparBusca() {
         {{ filtrados.length }} de
         {{ equipamentos.length }} equipamentos encontrados
       </p>
-
-      <span class="vue-identificacao">
-        ● Vue.js ativo
-      </span>
     </div>
   </div>
 </template>
