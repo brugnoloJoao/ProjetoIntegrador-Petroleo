@@ -45,7 +45,7 @@ export default function Engenheiro() {
       <div className="eng-right">
         <header className="eng-topbar">
           <span>
-            PETROSYNC <b>/</b> ENGENHARIA
+            PETROSYNC <b>/</b> ENGENHEIRO
           </span>
 
           <span className="eng-demo">
