@@ -1,0 +1,34 @@
+@{
+    ViewData["Title"] = "Máquinas 3D";
+    var area = User.IsInRole("Engenheiro") ? "ÁREA DO ENGENHEIRO"
+        : User.IsInRole("Gestor") ? "ÁREA DO GESTOR"
+        : "ÁREA DO OPERADOR";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/operator-machine.css" asp-append-version="true" />
+}
+
+<section class="operator-machine-page">
+    <header class="operator-machine-heading">
+        <div>
+            <span class="operator-machine-eyebrow"><i></i> @area</span>
+            <h1>Máquinas 3D</h1>
+            <p>Escolha um equipamento, explore o conjunto e consulte a condição dos ativos monitorados.</p>
+        </div>
+        <a class="operator-machine-back" asp-controller="OrdemServico" asp-action="Index">Ordens de serviço <span aria-hidden="true">→</span></a>
+    </header>
+
+    <form id="operator-machine-token" class="d-none">@Html.AntiForgeryToken()</form>
+    <div id="operator-machine-app" data-machine="@(ViewData["Maquina3D"])"
+         data-url-dados="@Url.Action("Dados", "Maquina3D")"
+         data-url-controles="@Url.Action("AtualizarControles", "Maquina3D")"
+         data-url-nova-os="@Url.Action("Create", "OrdemServico")"
+         data-url-ocorrencias="@Url.Action("Index", "Ocorrencias")">
+        <div class="operator-machine-loading">Carregando visualização 3D…</div>
+    </div>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/dist/operatorMachine.js" asp-append-version="true"></script>
+}

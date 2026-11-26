@@ -24,7 +24,7 @@
         <article class="card metric-card h-100">
             <div class="card-body">
                 <div class="metric-label">Parâmetros cadastrados</div>
-                <div class="metric-value">@parametros.Count</div>
+                <div class="metric-value" data-contar>@parametros.Count</div>
                 <div class="metric-note">Variáveis configuradas para monitoramento</div>
             </div>
         </article>
@@ -33,7 +33,7 @@
         <article class="card metric-card h-100">
             <div class="card-body">
                 <div class="metric-label">Ativos monitorados</div>
-                <div class="metric-value">@ativosMonitorados</div>
+                <div class="metric-value" data-contar>@ativosMonitorados</div>
                 <div class="metric-note">Equipamentos com parâmetros cadastrados</div>
             </div>
         </article>
@@ -57,10 +57,10 @@
         else
         {
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
+                <table class="ps-cartoes table table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th scope="col">Ativo</th>
+                            <th scope="col" data-titulo>Ativo</th>
                             <th scope="col">Parâmetro</th>
                             <th scope="col">Unidade</th>
                             <th scope="col">Limite de atenção</th>

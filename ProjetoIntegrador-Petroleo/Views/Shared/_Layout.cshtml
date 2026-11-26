@@ -14,6 +14,25 @@
     <link rel="stylesheet" href="~/css/vue-filters.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/ProjetoIntegrador_Petroleo.styles.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        @* Logo após o login, cobre a página antes de desenhar, para a transição não piscar. *@
+        <script>
+            (() => {
+                try {
+                    const dados = JSON.parse(sessionStorage.getItem('petrosync:entrando'));
+                    sessionStorage.removeItem('petrosync:entrando');
+                    if (!dados || Date.now() - dados.quando > 60000 || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                    const raiz = document.documentElement;
+                    raiz.style.setProperty('--entrada-x', `${dados.x * 100}%`);
+                    raiz.style.setProperty('--entrada-y', `${dados.y * 100}%`);
+                    raiz.classList.add('ps-entrando');
+                    // Se o script da animação não carregar, a cortina sai sozinha.
+                    setTimeout(() => raiz.classList.remove('ps-entrando'), 4000);
+                } catch { /* Sem transição. */ }
+            })();
+        </script>
+    }
 </head>
 <body>
     <header class="mobile-header">
@@ -39,15 +58,22 @@
                         <a class="sidebar-link @(currentController == "Ativos" ? "active" : "")" asp-controller="Ativos" asp-action="Index"><span class="sidebar-icon">◈</span>Ativos</a>
                         <a class="sidebar-link @(currentController == "Parametros" ? "active" : "")" asp-controller="Parametros" asp-action="Index"><span class="sidebar-icon">⌁</span>Parâmetros</a>
                     }
-                    <a class="sidebar-link @(currentController == "Alertas" ? "active" : "")" asp-controller="Alertas" asp-action="Index"><span class="sidebar-icon">◉</span>Alertas</a>
+                    <a class="sidebar-link @(currentController == "Alertas" ? "active" : "")" asp-controller="Alertas" asp-action="Index" data-menu-alertas data-usuario="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value" data-url-alerta="@Url.Action("Detalhes", "Alertas")" data-url-resumo="@Url.Action("Resumo", "Alertas")" data-url-ocorrencias="@Url.Action("Index", "Ocorrencias")"><span class="sidebar-icon">◉</span>Alertas</a>
                     <a class="sidebar-link @(currentController == "Historico" ? "active" : "")" asp-controller="Historico" asp-action="Index"><span class="sidebar-icon">◷</span>Histórico</a>
-                    <a class="sidebar-link @(currentController == "OrdemServico" ? "active" : "")" asp-controller="OrdemServico" asp-action="Index"><span class="sidebar-icon">▤</span>Ordens de serviço</a>
-                    @if (User.IsInRole("Operador"))
+                    @if (User.IsInRole("Operador") || User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
                     {
-                        <a class="sidebar-link @(currentController == "Operador" ? "active" : "")" asp-controller="Operador" asp-action="Maquina3D"><span class="sidebar-icon">◈</span>Máquina 3D</a>
+                        <a class="sidebar-link @(currentController == "Ocorrencias" ? "active" : "")" asp-controller="Ocorrencias" asp-action="Index"><span class="sidebar-icon">≡</span>Ocorrências</a>
+                    }
+                    <a class="sidebar-link @(currentController == "OrdemServico" ? "active" : "")" asp-controller="OrdemServico" asp-action="Index"><span class="sidebar-icon">▤</span>Ordens de serviço</a>
+                    @if (User.IsInRole("Operador") || User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+                    {
+                        <a class="sidebar-link @(currentController == "Maquina3D" && currentAction != "Planta" ? "active" : "")" asp-controller="Maquina3D" asp-action="Index"><span class="sidebar-icon">◈</span>Máquinas 3D</a>
+                        <a class="sidebar-link @(currentController == "Maquina3D" && currentAction == "Planta" ? "active" : "")" asp-controller="Maquina3D" asp-action="Planta"><span class="sidebar-icon">▦</span>Planta 3D</a>
+                        <a class="sidebar-link @(currentController == "Turno" ? "active" : "")" asp-controller="Turno" asp-action="Index"><span class="sidebar-icon">★</span>Placar do turno</a>
                     }
                     @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
                     {
+                        <a class="sidebar-link @(currentController == "Rotinas" ? "active" : "")" asp-controller="Rotinas" asp-action="Index"><span class="sidebar-icon">☑</span>Rotinas de manutenção</a>
                         <div class="sidebar-section-label sidebar-section-spaced">ANÁLISE</div>
                         <a class="sidebar-link @(currentController == "Anomalias" ? "active" : "")" asp-controller="Anomalias" asp-action="Index"><span class="sidebar-icon">⌁</span>Anomalias</a>
                         <a class="sidebar-link @(currentController == "Risco" ? "active" : "")" asp-controller="Risco" asp-action="Index"><span class="sidebar-icon">△</span>Risco</a>
@@ -74,6 +100,10 @@
                 }
                 @if (User.Identity?.IsAuthenticated == true)
                 {
+                    @if (User.IsInRole("Operador") && !User.IsInRole("Engenheiro") && !User.IsInRole("Gestor"))
+                    {
+                        <div class="ps-presenca-painel" data-presenca data-usuario="@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value"></div>
+                    }
                     <div class="sidebar-account">
                         <span class="user-avatar">@(User.Identity?.Name?.Substring(0, 1).ToUpperInvariant())</span>
                         <span class="sidebar-account-name">@User.Identity?.Name</span>
@@ -113,6 +143,11 @@
             document.addEventListener('keydown', event => { if (event.key === 'Escape') close(); });
         })();
     </script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script type="module" src="~/dist/entrada.js" asp-append-version="true"></script>
+        <script type="module" src="~/dist/sistema.js" asp-append-version="true"></script>
+    }
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

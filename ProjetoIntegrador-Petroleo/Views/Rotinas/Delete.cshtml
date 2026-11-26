@@ -1,0 +1,31 @@
+@model RotinaManutencao
+
+@{
+    ViewData["Title"] = "Excluir rotina";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CADASTRO DE MANUTENÇÃO</p>
+        <h1>Excluir rotina</h1>
+        <p class="page-subtitle">As ordens de serviço existentes mantêm seus checklists.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para rotinas</a>
+</section>
+
+<section class="create-card create-card-compact">
+    <div class="create-card-heading">
+        <span class="create-card-icon" aria-hidden="true">☑</span>
+        <div>
+            <h2>@Model.Titulo</h2>
+            <p>@(Model.AtivoId != null ? $"{Model.Ativo?.Nome} · {Model.Ativo?.Tag}" : $"Tipo: {Model.TipoAtivo}")</p>
+        </div>
+    </div>
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="create-form">
+        <p>Confirma a exclusão desta rotina?</p>
+        <div class="create-form-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Excluir rotina</button>
+        </div>
+    </form>
+</section>

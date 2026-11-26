@@ -1,0 +1,39 @@
+@{
+    ViewData["Title"] = "Planta 3D";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/operator-machine.css" asp-append-version="true" />
+}
+
+<section class="operator-machine-page plant-page">
+    <header class="operator-machine-heading">
+        <div>
+            <span class="operator-machine-eyebrow"><i></i> VISÃO DA REFINARIA</span>
+            <h1>Planta 3D</h1>
+            <p>Todas as máquinas juntas. A que tem problema acende; clique nela para ver de perto.</p>
+        </div>
+        <a class="operator-machine-back" asp-action="Index">Máquinas 3D <span aria-hidden="true">→</span></a>
+    </header>
+
+    <div class="plant-bar">
+        <p id="plant-summary" role="status">Carregando a planta…</p>
+        <button type="button" class="op-preset-btn" id="plant-reset">Visão geral</button>
+    </div>
+
+    <div class="plant-stage" id="plant-app"
+         data-url-dados="@Url.Action("Dados", "Maquina3D")"
+         data-url-maquina="@Url.Action("Index", "Maquina3D")">
+        <div class="plant-canvas"></div>
+        <div class="op-3d-carregando" role="status"><i aria-hidden="true"></i> Preparando a planta 3D…</div>
+        <div class="plant-labels"></div>
+        <div class="op-twin-hint">
+            <span class="so-mouse">ARRASTAR: GIRAR • SCROLL: ZOOM • CLIQUE NO NOME: ABRIR A MÁQUINA</span>
+            <span class="so-toque">UM DEDO: GIRAR • DOIS DEDOS: ZOOM • TOQUE NO NOME: ABRIR A MÁQUINA</span>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script type="module" src="~/dist/planta.js" asp-append-version="true"></script>
+}

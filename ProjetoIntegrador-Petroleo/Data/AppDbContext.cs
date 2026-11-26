@@ -25,6 +25,8 @@ namespace ProjetoIntegrador_Petroleo.Data
         public DbSet<Alerta> Alertas => Set<Alerta>();
         public DbSet<Anomalia> Anomalias => Set<Anomalia>();
         public DbSet<OrdemServico> OrdensServico => Set<OrdemServico>();
+        public DbSet<RotinaManutencao> RotinasManutencao => Set<RotinaManutencao>();
+        public DbSet<OrdemServicoItem> OrdensServicoItens => Set<OrdemServicoItem>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -35,6 +37,19 @@ namespace ProjetoIntegrador_Petroleo.Data
                 .WithMany()
                 .HasForeignKey(o => o.OperadorId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<RotinaManutencao>()
+                .HasOne(r => r.Ativo)
+                .WithMany()
+                .HasForeignKey(r => r.AtivoId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Sem ação no banco para evitar dois caminhos de cascata até o item no SQL Server.
+            builder.Entity<OrdemServicoItem>()
+                .HasOne(i => i.RotinaManutencao)
+                .WithMany()
+                .HasForeignKey(i => i.RotinaManutencaoId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
 
             builder.Entity<Leitura>()
                 .HasIndex(l => new { l.ParametroId, l.DataHora });

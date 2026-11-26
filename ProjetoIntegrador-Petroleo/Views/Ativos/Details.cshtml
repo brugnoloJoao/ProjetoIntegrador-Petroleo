@@ -22,6 +22,9 @@
     </div>
     <div class="detail-heading-actions">
         <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ativos</a>
+        <a asp-controller="Maquina3D" asp-action="Index" asp-route-ativoId="@Model.Id" class="btn btn-outline-primary">Ver em 3D</a>
+        <a asp-controller="Ocorrencias" asp-action="Index" asp-route-ativoId="@Model.Id" class="btn btn-outline-primary">Ocorrências</a>
+        <a asp-controller="Rotinas" asp-action="Index" asp-route-ativoId="@Model.Id" class="btn btn-outline-primary">Rotinas de manutenção</a>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar ativo</a>
     </div>
 </section>
@@ -37,7 +40,7 @@
     </article>
     <article class="card detail-summary-card">
         <span class="detail-summary-icon">⌁</span>
-        <div><span class="detail-summary-label">Parâmetros monitorados</span><strong>@Model.Parametros.Count</strong></div>
+        <div><span class="detail-summary-label">Parâmetros monitorados</span><strong data-contar>@Model.Parametros.Count</strong></div>
     </article>
 </div>
 
@@ -63,9 +66,9 @@
     else
     {
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="ps-cartoes table table-hover align-middle mb-0">
                 <thead>
-                    <tr><th>Parâmetro</th><th>Unidade</th><th>Limite de atenção</th><th>Limite crítico</th><th></th></tr>
+                    <tr><th data-titulo>Parâmetro</th><th>Unidade</th><th>Limite de atenção</th><th>Limite crítico</th><th></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var parametro in Model.Parametros.OrderBy(p => p.Nome))

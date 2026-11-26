@@ -32,5 +32,14 @@ namespace ProjetoIntegrador_Petroleo.Models
         public DateTime DataAbertura { get; set; } = DateTime.UtcNow;
         public DateTime? DataAprovacao { get; set; }
         public DateTime? DataEncerramento { get; set; }
+
+        // Colunas opcionais: ordens anteriores a elas continuam válidas.
+        public TipoManutencao? TipoManutencao { get; set; }
+        public OrigemOrdem? Origem { get; set; }
+
+        [StringLength(1000)]
+        public string? PecasMateriais { get; set; }
+
+        public List<OrdemServicoItem> Itens { get; set; } = new();
     }
 }

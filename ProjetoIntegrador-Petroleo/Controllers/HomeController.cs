@@ -73,7 +73,7 @@ namespace ProjetoIntegrador_Petroleo.Controllers
                 unidade = p.Unidade,
                 atencao = p.LimiteAtencao,
                 critico = p.LimiteCritico,
-                pontos = leituras.Select(l => new { t = l.DataHora.ToString("HH:mm:ss"), v = l.Valor })
+                pontos = leituras.Select(l => new { t = l.DataHora.HorarioDeBrasilia("HH:mm:ss"), v = l.Valor })
             });
         }
 

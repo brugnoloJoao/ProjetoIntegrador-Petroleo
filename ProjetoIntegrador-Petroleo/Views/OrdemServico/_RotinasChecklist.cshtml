@@ -1,0 +1,46 @@
+@model ProjetoIntegrador_Petroleo.ViewModels.RotinasChecklistVM
+@using ProjetoIntegrador_Petroleo.Models
+
+@if (!Model.AtivoEscolhido)
+{
+    <p class="os-checklist-empty">Selecione o equipamento para ver as rotinas cadastradas.</p>
+}
+else if (Model.Rotinas.Count == 0)
+{
+    <p class="os-checklist-empty">
+        Nenhuma rotina cadastrada para este equipamento.
+        @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
+        {
+            <a asp-controller="Rotinas" asp-action="Create">Cadastrar rotina</a>
+        }
+    </p>
+}
+else
+{
+    <div class="os-routine-list">
+        @foreach (var rotina in Model.Rotinas)
+        {
+            <label class="os-routine">
+                <input type="checkbox" class="form-check-input" name="rotinas" value="@rotina.Id"
+                       data-pecas="@rotina.PecasMateriais" checked="@Model.Selecionadas.Contains(rotina.Id)" />
+                <span>
+                    <strong>@rotina.Titulo</strong>
+                    <small>@rotina.TipoManutencao.Nome()@(rotina.IntervaloDias is null ? "" : $" · a cada {rotina.IntervaloDias} dias")</small>
+                    @if (rotina.Etapas().Any())
+                    {
+                        <ul>
+                            @foreach (var etapa in rotina.Etapas())
+                            {
+                                <li>@etapa</li>
+                            }
+                        </ul>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(rotina.PecasMateriais))
+                    {
+                        <small>Peças: @rotina.PecasMateriais</small>
+                    }
+                </span>
+            </label>
+        }
+    </div>
+}

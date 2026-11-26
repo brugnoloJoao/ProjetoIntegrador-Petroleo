@@ -1,0 +1,28 @@
+@model RotinaManutencao
+
+@{
+    ViewData["Title"] = "Cadastrar rotina";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CADASTRO DE MANUTENÇÃO</p>
+        <h1>Cadastrar rotina</h1>
+        <p class="page-subtitle">Registre uma tarefa prevista no manual do equipamento.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para rotinas</a>
+</section>
+
+<section class="create-card">
+    <form asp-action="Create" method="post" class="create-form">
+        <partial name="_Form" model="Model" />
+        <div class="create-form-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Cadastrar rotina <span aria-hidden="true">→</span></button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

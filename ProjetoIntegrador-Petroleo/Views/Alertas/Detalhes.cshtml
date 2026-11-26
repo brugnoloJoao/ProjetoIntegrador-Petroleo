@@ -1,0 +1,121 @@
+@model ProjetoIntegrador_Petroleo.ViewModels.AlertaDetalhesVM
+@using ProjetoIntegrador_Petroleo.Models
+
+@{
+    var alerta = Model.Alerta;
+    var parametro = alerta.Parametro!;
+    var ativo = parametro.Ativo!;
+    var critico = alerta.Severidade == Severidade.Critico;
+    ViewData["Title"] = "Alerta · " + parametro.Nome;
+}
+
+@* Abrir esta tela marca o alerta como visto para quem está logado. *@
+<div data-alerta-visto="@alerta.Id" hidden></div>
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CENTRAL DE EVENTOS / ALERTA #@alerta.Id</p>
+        <div class="detail-title-line">
+            <h1>@parametro.Nome acima do limite</h1>
+            <span class="badge @(critico ? "bg-danger" : "telemetry-warning")">@(critico ? "⛔" : "⚠") @alerta.Severidade.Nome()</span>
+            <span class="badge @(alerta.Status == StatusAlerta.Ativo ? "bg-danger" : alerta.Status == StatusAlerta.Reconhecido ? "bg-primary" : "bg-secondary")">@alerta.Status.Nome()</span>
+        </div>
+        <p class="page-subtitle">@ativo.Nome <span class="asset-tag">@ativo.Tag</span>@(alerta.Simulada ? " · dado simulado" : "")</p>
+    </div>
+    <div class="detail-heading-actions">
+        <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para alertas</a>
+        <a asp-controller="Maquina3D" asp-action="Index" asp-route-ativoId="@ativo.Id" class="btn btn-outline-primary">Ver em 3D</a>
+        <a asp-controller="Ocorrencias" asp-action="Index" asp-route-ativoId="@ativo.Id" class="btn btn-outline-primary">Ocorrências da máquina</a>
+    </div>
+</section>
+
+@if (TempData["Sucesso"] != null)
+{
+    <div class="alert alert-success">@TempData["Sucesso"]</div>
+}
+@if (TempData["Aviso"] != null)
+{
+    <div class="alert alert-warning">@TempData["Aviso"]</div>
+}
+
+<div class="detail-summary-grid">
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">◉</span>
+        <div><span class="detail-summary-label">Valor detectado</span><strong data-contar>@alerta.ValorMedido.ToString("F1") @parametro.Unidade</strong></div>
+    </article>
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">⚑</span>
+        <div><span class="detail-summary-label">Limite violado</span><strong data-contar>@alerta.LimiteViolado.ToString("F1") @parametro.Unidade</strong></div>
+    </article>
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">◷</span>
+        <div><span class="detail-summary-label">Detectado em</span><strong>@alerta.DataHora.HorarioDeBrasilia("dd/MM/yyyy HH:mm:ss")</strong></div>
+    </article>
+</div>
+
+<section class="card detail-section-card alert-next">
+    <div class="detail-section-heading">
+        <div>
+            <p class="eyebrow">O QUE FAZER</p>
+            <h2>Atendimento do alerta</h2>
+            <p class="section-kicker">@Model.Evolucao.Resumo(alerta, parametro.Unidade)</p>
+            @if (alerta.Status == StatusAlerta.Ativo && alerta.ReconhecidoEm == null)
+            {
+                <span data-espera="@DateTime.SpecifyKind(alerta.DataHora, DateTimeKind.Utc).ToString("o")"></span>
+            }
+        </div>
+    </div>
+
+    @if (alerta.ReconhecidoEm is { } reconhecidoEm)
+    {
+        <p class="alert-note">Reconhecido por @alerta.ReconhecidoPorId em @reconhecidoEm.HorarioDeBrasilia(): @alerta.Observacao</p>
+    }
+    @if (Model.Rotinas.Count > 0)
+    {
+        <p class="alert-note">☑ Rotinas indicadas pelo cadastro: @string.Join(" · ", Model.Rotinas.Select(r => r.Titulo))</p>
+    }
+
+    <div class="alert-actions">
+        @if (Model.Ordem == null)
+        {
+            <a class="btn btn-primary" asp-controller="OrdemServico" asp-action="Create" asp-route-alertaId="@alerta.Id">Abrir ordem de serviço</a>
+        }
+        else if (Model.PodeVerOrdem)
+        {
+            <a class="btn btn-primary" asp-controller="OrdemServico" asp-action="Details" asp-route-id="@Model.Ordem.Id">Ver OS #@Model.Ordem.Id · @Model.Ordem.Status.Nome()</a>
+        }
+        else
+        {
+            <span class="alert-note">Já há uma OS para este caso.</span>
+        }
+        @if (alerta.ReconhecidoEm == null && (User.IsInRole("Operador") || User.IsInRole("Engenheiro")))
+        {
+            <a class="btn btn-outline-primary" asp-action="Reconhecer" asp-route-id="@alerta.Id">Reconhecer</a>
+        }
+    </div>
+</section>
+
+@if (Model.Valores.Count > 1)
+{
+    <section class="card detail-section-card">
+        <div class="detail-section-heading">
+            <div>
+                <p class="eyebrow">COMPORTAMENTO</p>
+                <h2>Leituras em torno do alerta</h2>
+            </div>
+        </div>
+        <div id="grafico" class="history-chart" role="img" aria-label="Leituras de @parametro.Nome em torno do alerta"
+             data-chart="@System.Text.Json.JsonSerializer.Serialize(new {
+                 rotulos = Model.Rotulos,
+                 valores = Model.Valores,
+                 nome = parametro.Nome,
+                 atencao = parametro.LimiteAtencao,
+                 critico = parametro.LimiteCritico,
+                 unidade = parametro.Unidade
+             })"></div>
+    </section>
+}
+
+@section Scripts {
+    <script type="module" src="~/dist/historyChart.js" asp-append-version="true"></script>
+}

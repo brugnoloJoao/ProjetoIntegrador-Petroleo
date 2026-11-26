@@ -1,0 +1,94 @@
+@model ProjetoIntegrador_Petroleo.ViewModels.OcorrenciasVM
+@using ProjetoIntegrador_Petroleo.Models
+
+@{
+    ViewData["Title"] = "Ocorrências";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">REGISTRO DAS MÁQUINAS</p>
+        <h1>Ocorrências</h1>
+        <p class="page-subtitle">O que aconteceu com cada equipamento e o que o sistema registrou. Um alerta continua aqui mesmo depois de o valor voltar ao normal.</p>
+    </div>
+</section>
+
+<form method="get" class="row g-3 mb-4 align-items-end">
+    <div class="col-md-4">
+        <label class="form-label" for="ocorrencia-ativo">Equipamento</label>
+        <select id="ocorrencia-ativo" name="ativoId" class="form-select" asp-items="(SelectList)ViewBag.Ativos">
+            <option value="">Todos</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label class="form-label" for="ocorrencia-dias">Período</label>
+        <select id="ocorrencia-dias" name="dias" class="form-select">
+            <option value="1" selected="@(Model.Dias == 1)">Últimas 24 horas</option>
+            <option value="7" selected="@(Model.Dias == 7)">Últimos 7 dias</option>
+            <option value="30" selected="@(Model.Dias == 30)">Últimos 30 dias</option>
+            <option value="0" selected="@(Model.Dias == 0)">Tudo</option>
+        </select>
+    </div>
+    <div class="col-md-2">
+        <button type="submit" class="btn btn-primary">Filtrar</button>
+    </div>
+</form>
+
+@if (Model.Eventos.Count == 0)
+{
+    <p class="text-muted">Nenhuma ocorrência no período.</p>
+}
+else
+{
+    <ol class="event-list">
+        @foreach (var e in Model.Eventos)
+        {
+            <li class="event-item">
+                <div class="event-top">
+                    <time>@e.DataHora.HorarioDeBrasilia("dd/MM/yyyy HH:mm:ss")</time>
+                    <span class="badge @e.SeloClasse">@(e.Tipo == ProjetoIntegrador_Petroleo.ViewModels.TipoEvento.Alerta ? (e.SeloClasse == "bg-danger" ? "⛔ " : "⚠ ") : "")@e.Selo</span>
+                    @if (e.Simulado)
+                    {
+                        <span class="event-simulated">Dado simulado</span>
+                    }
+                    <span class="event-asset">@e.AtivoNome <span class="asset-tag">@e.AtivoTag</span></span>
+                </div>
+                <strong>@e.Titulo</strong>
+                @foreach (var linha in e.Linhas)
+                {
+                    <p>@linha</p>
+                }
+                <div class="event-actions">
+                    @if (e.OrdemId != null)
+                    {
+                        <a class="btn btn-sm btn-outline-primary" asp-controller="OrdemServico" asp-action="Details" asp-route-id="@e.OrdemId">@e.OrdemTexto</a>
+                    }
+                    else if (e.OrdemTexto != null)
+                    {
+                        <span class="event-note">@e.OrdemTexto</span>
+                    }
+                    @if (e.AlertaSemOrdemId != null)
+                    {
+                        <span class="event-note">Sem OS</span>
+                        <a class="btn btn-sm btn-primary" asp-controller="OrdemServico" asp-action="Create" asp-route-alertaId="@e.AlertaSemOrdemId">Abrir OS</a>
+                    }
+                </div>
+            </li>
+        }
+    </ol>
+}
+
+@if (Model.Pagina > 1 || Model.TemMaisAntigos)
+{
+    <nav class="event-pages" aria-label="Páginas">
+        @if (Model.Pagina > 1)
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-ativoId="@Model.AtivoId" asp-route-dias="@Model.Dias" asp-route-pagina="@(Model.Pagina - 1)">← Mais recentes</a>
+        }
+        <span>Página @Model.Pagina</span>
+        @if (Model.TemMaisAntigos)
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index" asp-route-ativoId="@Model.AtivoId" asp-route-dias="@Model.Dias" asp-route-pagina="@(Model.Pagina + 1)">Mais antigas →</a>
+        }
+    </nav>
+}

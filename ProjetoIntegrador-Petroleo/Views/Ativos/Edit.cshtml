@@ -41,7 +41,9 @@
 
             <div class="create-field">
                 <label asp-for="Tipo" class="form-label">Tipo de equipamento</label>
-                <input asp-for="Tipo" class="form-control" />
+                <input asp-for="Tipo" class="form-control" list="tipos-equipamento" />
+                <span class="create-field-hint">Escolha um tipo da lista para a máquina ter o modelo 3D correspondente.</span>
+                <partial name="_TiposEquipamento" />
                 <span asp-validation-for="Tipo" class="field-validation"></span>
             </div>
 

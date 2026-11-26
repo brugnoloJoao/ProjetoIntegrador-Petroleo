@@ -101,3 +101,86 @@
   .operator-machine-page .op-twin-title { font-size:10px; }
   .operator-machine-page .op-twin-hint { right:8px; bottom:8px; max-width:calc(100% - 16px); font-size:8px; }
 }
+
+/* Seletor de equipamento */
+.op-machine-selector { display:flex; align-items:center; flex-wrap:wrap; gap:10px 14px; padding:11px 15px; border:1px solid var(--op-border); border-radius:7px; background:var(--op-panel); }
+.op-machine-selector label { margin:0; color:var(--op-muted); font:700 10px/1.4 "IBM Plex Mono",monospace; letter-spacing:.1em; }
+.op-machine-selector select { min-width:min(360px,100%); max-width:100%; padding:8px 11px; border:1px solid var(--op-border-strong); border-radius:5px; background:var(--op-bg); color:var(--op-text); font-size:13px; }
+.op-machine-selector select:focus-visible { outline:2px solid var(--op-amber); outline-offset:2px; }
+.op-machine-selector > span { color:var(--op-muted); font-size:12px; }
+.op-machine-selector .op-machine-type { font:10.5px/1.4 "IBM Plex Mono",monospace; }
+.op-machine-selector .op-status { display:inline-flex; align-items:center; gap:6px; }
+.op-machine-selector .op-status i { width:7px; height:7px; border-radius:50%; background:var(--op-green); }
+.op-machine-selector .op-status.is-off i { background:var(--op-amber); }
+.op-machine-suggestion { margin-left:auto; padding:8px 12px; border:1px solid var(--op-amber); border-radius:5px; background:var(--op-amber-bg); color:var(--op-amber); font-size:12px; font-weight:700; text-decoration:none; }
+.op-machine-history { color:var(--op-amber); font-size:12px; }
+.op-machine-suggestion:hover { background:rgb(245 166 35 / 22%); color:#ffd080; }
+.operator-machine-page .op-failure-button:disabled,.operator-machine-page .op-speed-control input:disabled { opacity:.45; cursor:not-allowed; }
+.operator-machine-page .op-twin-scene-error { position:absolute; inset:0; display:grid; place-items:center; padding:30px; color:var(--op-muted); text-align:center; font-size:13px; }
+@media (max-width: 720px) {
+  .op-machine-selector select { width:100%; min-width:0; }
+  .op-machine-suggestion { margin-left:0; }
+  .operator-machine-page .op-twin-hud-tl { font-size:9px; }
+  .operator-machine-page .op-3d-pin span { display:none; }
+}
+
+/* Câmera apontando a falha */
+.operator-machine-page .op-twin-fault { position:absolute; bottom:44px; left:18px; z-index:3; display:flex; flex-direction:column; gap:4px; max-width:min(320px,70%); padding:10px 12px; border:1px solid var(--op-red); border-radius:5px; background:rgb(40 12 16 / 94%); color:var(--op-text); font:11px/1.5 "IBM Plex Mono",monospace; }
+.operator-machine-page .op-twin-fault strong { color:#fb7185; }
+.operator-machine-page .op-twin-fault button { align-self:flex-start; padding:0; border:0; background:none; color:var(--op-amber); font:inherit; text-decoration:underline; cursor:pointer; }
+.operator-machine-page .op-3d-pin.is-foco { animation:op-pin-foco 1s ease-in-out infinite; z-index:2; }
+@keyframes op-pin-foco { 50% { box-shadow:0 0 0 6px rgb(239 68 68 / 35%); } }
+.operator-machine-page .op-reading-state { color:var(--op-amber); font-size:10px; font-style:normal; font-weight:700; }
+.operator-machine-page .op-reading-card.is-critico .op-reading-state { color:#fb7185; }
+@media (max-width: 720px) { .operator-machine-page .op-twin-fault { left:8px; } }
+
+/* Sala de controle */
+.op-room-button { padding:8px 12px; border:1px solid var(--op-border-strong); border-radius:5px; background:var(--op-bg); color:var(--op-text); font-size:12px; font-weight:700; cursor:pointer; }
+.op-room-button:hover { border-color:var(--op-amber); color:var(--op-amber); }
+.op-room-bar { display:flex; align-items:center; flex-wrap:wrap; gap:8px 18px; padding:12px 18px; border:1px solid var(--op-border-strong); border-radius:7px; background:var(--op-panel); }
+.op-room-bar strong { color:var(--op-text); font-size:clamp(18px,2.4vw,30px); }
+.op-room-bar span { color:var(--op-muted); font-size:14px; }
+.op-room-bar button { margin-left:auto; padding:7px 13px; border:1px solid var(--op-border-strong); border-radius:5px; background:var(--op-bg); color:var(--op-text); font-size:12px; cursor:pointer; }
+.op-room-bar.is-critico { border-color:var(--op-red); background:rgb(127 29 29 / 30%); }
+.op-room-bar.is-critico span { color:#fda4af; font-weight:700; }
+body.ps-sala .app-sidebar, body.ps-sala .mobile-header, body.ps-sala .site-footer,
+body.ps-sala .operator-machine-heading, body.ps-sala .op-machine-selector,
+body.ps-sala .operator-machine-connection, body.ps-sala .op-twin-controls, body.ps-sala .op-twin-hint { display:none; }
+body.ps-sala .app-main { margin:0; width:100%; }
+body.ps-sala .app-shell { max-width:none; padding:14px; }
+body.ps-sala .operator-machine-page { min-height:calc(100vh - 28px); }
+body.ps-sala .operator-machine-page .op-twin-stage, body.ps-sala .operator-machine-page .op-twin-canvas { min-height:calc(100vh - 270px); height:calc(100vh - 270px); }
+
+/* Planta 3D */
+.plant-bar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; padding:11px 15px; border:1px solid var(--op-border); border-radius:7px; background:var(--op-panel); }
+.plant-bar p { margin:0; color:var(--op-muted); font-size:13px; }
+.plant-stage { position:relative; height:max(440px, calc(100vh - 290px)); overflow:hidden; border:1px solid var(--op-border); border-radius:7px; background:#0b0d10; }
+.plant-canvas { width:100%; height:100%; cursor:grab; touch-action:none; }
+.plant-canvas canvas { display:block; }
+.plant-labels { position:absolute; inset:0; overflow:hidden; pointer-events:none; }
+.plant-label { position:absolute; top:0; left:0; display:flex; flex-direction:column; align-items:center; padding:5px 10px; border:1px solid var(--op-border-strong); border-radius:5px; background:rgb(17 20 25 / 92%); color:var(--op-text); font:11px/1.4 "IBM Plex Mono",monospace; text-decoration:none; white-space:nowrap; pointer-events:auto; }
+.plant-label:hover, .plant-label:focus-visible { z-index:3; border-color:var(--op-amber); color:var(--op-text); }
+.plant-label b { color:var(--op-amber); }
+.plant-label small { display:none; color:var(--op-muted); }
+.plant-label:hover small, .plant-label:focus-visible small { display:block; }
+.plant-label.is-normal span { color:#4ade80; }
+.plant-label.is-alerta { border-color:var(--op-amber); }
+.plant-label.is-alerta span { color:#fbbf24; }
+.plant-label.is-critico { z-index:2; border-color:var(--op-red); background:rgb(60 14 20 / 95%); }
+.plant-label.is-critico span { color:#fb7185; font-weight:700; }
+.plant-label.is-parado span { color:#94a3b8; }
+
+/* Aviso enquanto o 3D é preparado */
+.op-3d-carregando { position:absolute; inset:0; z-index:2; display:flex; align-items:center; justify-content:center; gap:10px; color:#9ca3af; font:12px/1.4 "IBM Plex Mono",monospace; pointer-events:none; }
+.op-3d-carregando i { width:16px; height:16px; border:2px solid #323946; border-top-color:#f5a623; border-radius:50%; animation:op-girar .8s linear infinite; }
+@keyframes op-girar { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .op-3d-carregando i { animation:none; } }
+
+
+/* Toque: instruções próprias e dois dedos valendo também em cima dos nomes */
+.op-twin-hint .so-toque { display:none; }
+.operator-machine-page .op-3d-pin, .plant-label { touch-action:none; }
+@media (pointer: coarse) {
+  .op-twin-hint .so-mouse { display:none; }
+  .op-twin-hint .so-toque { display:inline; }
+}

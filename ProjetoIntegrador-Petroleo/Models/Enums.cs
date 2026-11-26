@@ -37,3 +37,17 @@ public enum StatusAlerta
     [Display(Name = "Reconhecido")] Reconhecido,
     [Display(Name = "Normalizado")] Normalizado
 }
+
+public enum TipoManutencao
+{
+    [Display(Name = "Preditiva")] Preditiva,
+    [Display(Name = "Preventiva")] Preventiva,
+    [Display(Name = "Corretiva")] Corretiva
+}
+
+public enum OrigemOrdem
+{
+    [Display(Name = "Aberta manualmente")] Manual,
+    [Display(Name = "Alerta de monitoramento")] Alerta,
+    [Display(Name = "Rotina por tempo")] Rotina
+}

@@ -28,11 +28,11 @@
 else
 {
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="ps-cartoes table table-hover align-middle">
             <thead>
                 <tr>
                     <th>Severidade</th>
-                    <th>Equipamento</th>
+                    <th data-titulo>Equipamento</th>
                     <th>Parâmetro</th>
                     <th>Valor</th>
                     <th>Limite violado</th>
@@ -44,7 +44,7 @@ else
             <tbody>
                 @foreach (var a in Model)
                 {
-                    <tr data-alert-row data-status="@a.Status" data-search="@($"{a.Parametro?.Ativo?.Nome} {a.Parametro?.Ativo?.Tag} {a.Parametro?.Nome} {a.Status}")">
+                    <tr data-alert-row data-alerta-id="@a.Id" data-url="@Url.Action("Detalhes", new { id = a.Id })" data-status="@a.Status" data-search="@($"{a.Parametro?.Ativo?.Nome} {a.Parametro?.Ativo?.Tag} {a.Parametro?.Nome} {a.Status}")">
                         <td>
                             @if (a.Severidade == Severidade.Critico)
                             {
@@ -57,8 +57,9 @@ else
                         </td>
 
                         <td>
-                            @a.Parametro?.Ativo?.Nome
+                            <a class="alert-link" asp-action="Detalhes" asp-route-id="@a.Id">@a.Parametro?.Ativo?.Nome</a>
                             <small class="asset-tag">@a.Parametro?.Ativo?.Tag</small>
+                            <span class="alert-new" data-selo-novo hidden>Novo</span>
                         </td>
 
                         <td>@a.Parametro?.Nome</td>
@@ -73,6 +74,10 @@ else
                             <span class="badge @(a.Status == StatusAlerta.Ativo ? "bg-danger" : a.Status == StatusAlerta.Reconhecido ? "bg-primary" : "bg-secondary")">
                                 @a.Status
                             </span>
+                            @if (a.Status == StatusAlerta.Ativo && a.ReconhecidoEm == null)
+                            {
+                                <span data-espera="@DateTime.SpecifyKind(a.DataHora, DateTimeKind.Utc).ToString("o")"></span>
+                            }
                         </td>
 
                         <td>

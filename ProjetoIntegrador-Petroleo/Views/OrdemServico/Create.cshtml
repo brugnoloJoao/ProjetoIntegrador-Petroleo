@@ -1,16 +1,26 @@
 @model ProjetoIntegrador_Petroleo.Models.OrdemServico
 @using ProjetoIntegrador_Petroleo.Models
+@using ProjetoIntegrador_Petroleo.ViewModels
 @using Microsoft.AspNetCore.Mvc.Rendering
 
 @{
-    ViewData["Title"] = "Nova ordem de serviço";
+    var rotinaOrigemId = ViewData["RotinaOrigemId"] as int?;
+    var pronta = Model.AlertaId != null || rotinaOrigemId != null;
+    var ativo = ViewData["Ativo"] as Ativo;
+    var checklist = (RotinasChecklistVM)ViewData["Checklist"]!;
+    var tipoSugerido = ViewData["TipoSugerido"] as TipoManutencao?;
+    ViewData["Title"] = pronta ? "Conferir ordem de serviço" : "Nova ordem de serviço";
 }
 
 <section class="page-heading">
     <div>
         <p class="eyebrow">PLANEJAMENTO DE MANUTENÇÃO</p>
-        <h1>Nova ordem de serviço</h1>
-        <p class="page-subtitle">Registre uma intervenção e acompanhe sua aprovação e execução.</p>
+        <h1>@ViewData["Title"]</h1>
+        <p class="page-subtitle">
+            @(pronta
+                ? "A ordem já veio preenchida. Confira, escolha o tipo de manutenção e confirme."
+                : "Registre uma intervenção e acompanhe sua aprovação e execução.")
+        </p>
     </div>
     <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ordens</a>
 </section>
@@ -20,29 +30,59 @@
         <span class="create-card-icon" aria-hidden="true">▤</span>
         <div>
             <h2>Detalhes da solicitação</h2>
-            <p>Informe o equipamento, o escopo do serviço e o nível de prioridade.</p>
+            <p>Informe o equipamento, o tipo de manutenção, o escopo do serviço e a prioridade.</p>
         </div>
     </div>
 
     <form asp-action="Create" method="post" class="create-form">
         <div asp-validation-summary="All" class="validation-summary"></div>
         <input type="hidden" asp-for="AlertaId" />
+        @if (rotinaOrigemId != null)
+        {
+            <input type="hidden" name="rotinaOrigemId" value="@rotinaOrigemId" />
+        }
 
         @if (Model.AlertaId != null)
         {
             <div class="create-context-note">
                 <span aria-hidden="true">◉</span>
-                Esta ordem será vinculada ao alerta <strong>#@Model.AlertaId</strong>.
+                <span>Esta ordem será vinculada ao alerta <strong>#@Model.AlertaId</strong>.</span>
             </div>
         }
 
         <div class="create-form-grid">
             <div class="create-field create-field-wide">
                 <label asp-for="AtivoId" class="form-label">Equipamento</label>
-                <select asp-for="AtivoId" asp-items="(SelectList)ViewBag.Ativos" class="form-select">
-                    <option value="">Selecione o equipamento</option>
-                </select>
+                @if (pronta && ativo != null)
+                {
+                    <input type="hidden" asp-for="AtivoId" />
+                    <input class="form-control" value="@ativo.Nome · @ativo.Tag" readonly />
+                }
+                else
+                {
+                    <select asp-for="AtivoId" asp-items="(SelectList)ViewBag.Ativos" class="form-select" data-routines-url="@Url.Action("Rotinas")">
+                        <option value="">Selecione o equipamento</option>
+                    </select>
+                }
                 <span asp-validation-for="AtivoId" class="field-validation"></span>
+            </div>
+
+            <div class="create-field">
+                <label asp-for="TipoManutencao" class="form-label">Tipo de manutenção</label>
+                <select asp-for="TipoManutencao" asp-items="Html.GetEnumSelectList<TipoManutencao>()" class="form-select" required>
+                    <option value="">Selecione o tipo</option>
+                </select>
+                <span asp-validation-for="TipoManutencao" class="field-validation"></span>
+                @if (tipoSugerido != null)
+                {
+                    <span class="create-field-hint">O cadastro de manutenção indica: <strong>@tipoSugerido.Value.Nome()</strong>.</span>
+                }
+            </div>
+
+            <div class="create-field">
+                <label asp-for="Prioridade" class="form-label"></label>
+                <select asp-for="Prioridade" asp-items="Html.GetEnumSelectList<Prioridade>()" class="form-select"></select>
+                <span asp-validation-for="Prioridade" class="field-validation"></span>
             </div>
 
             @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
@@ -76,20 +116,60 @@
                 <span asp-validation-for="Descricao" class="field-validation"></span>
             </div>
 
-            <div class="create-field">
-                <label asp-for="Prioridade" class="form-label"></label>
-                <select asp-for="Prioridade" asp-items="Html.GetEnumSelectList<Prioridade>()" class="form-select"></select>
-                <span asp-validation-for="Prioridade" class="field-validation"></span>
+            <fieldset class="create-field create-field-wide">
+                <legend class="form-label">Rotinas do cadastro <span class="create-label-optional">viram o checklist da OS</span></legend>
+                <div id="os-routines" aria-live="polite">
+                    <partial name="_RotinasChecklist" model="checklist" />
+                </div>
+            </fieldset>
+
+            <div class="create-field create-field-wide">
+                <label asp-for="PecasMateriais" class="form-label">Peças e materiais <span class="create-label-optional">opcional</span></label>
+                <textarea asp-for="PecasMateriais" class="form-control" rows="2"></textarea>
+                <span asp-validation-for="PecasMateriais" class="field-validation"></span>
             </div>
         </div>
 
         <div class="create-form-actions">
             <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
-            <button type="submit" class="btn btn-primary">Abrir ordem de serviço <span aria-hidden="true">→</span></button>
+            <button type="submit" class="btn btn-primary">@(pronta ? "Confirmar e abrir OS" : "Abrir ordem de serviço") <span aria-hidden="true">→</span></button>
         </div>
     </form>
 </section>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const asset = document.querySelector('select[data-routines-url]');
+            const routines = document.getElementById('os-routines');
+            const parts = document.getElementById('PecasMateriais');
+            let partsEdited = false;
+            parts?.addEventListener('input', () => { partsEdited = parts.value.trim() !== ''; });
+
+            // As peças acompanham as rotinas marcadas até o usuário editar o campo.
+            routines.addEventListener('change', () => {
+                if (!parts || partsEdited) return;
+                const selected = [...routines.querySelectorAll('input[name="rotinas"]:checked')]
+                    .map((input) => input.dataset.pecas)
+                    .filter(Boolean);
+                parts.value = [...new Set(selected)].join('; ');
+            });
+
+            let request = 0;
+            asset?.addEventListener('change', async () => {
+                const current = ++request;
+                try {
+                    const response = await fetch(`${asset.dataset.routinesUrl}?ativoId=${encodeURIComponent(asset.value || 0)}`);
+                    if (!response.ok || response.redirected) throw new Error();
+                    const html = await response.text();
+                    if (current !== request) return;
+                    routines.innerHTML = html;
+                    if (parts && !partsEdited) parts.value = '';
+                } catch {
+                    if (current === request) routines.textContent = 'Não foi possível carregar as rotinas. Selecione o equipamento novamente.';
+                }
+            });
+        })();
+    </script>
 }

@@ -1,13 +1,12 @@
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { CategoryScale, Chart, Filler, Legend, LineController, LineElement, LinearScale, PointElement, Tooltip } from 'chart.js';
 import * as signalR from '@microsoft/signalr';
+import { CORES_LIMITE, criarGraficoLinha, serieLimite, serieMedida } from './charts/linha.js';
+import NumeroAnimado from './effects/NumeroAnimado.jsx';
 import './dashboard.css';
 import './dashboard-resilience.css';
 
 const ThreeBackground = React.lazy(() => import('./three-background.jsx'));
-
-Chart.register(CategoryScale, Filler, Legend, LineController, LineElement, LinearScale, PointElement, Tooltip);
 
 function useDashboard() {
   const [metrics, setMetrics] = useState({ total: '—', operando: '—', alertas: '—', os: '—', disp: null });
@@ -40,7 +39,10 @@ function useDashboard() {
     setParameterId(String(id));
     try {
       const response = await fetch(`${config.historyUrl}?parametroId=${encodeURIComponent(id)}`);
-      if (response.ok) setHistory(await response.json());
+      if (response.ok) {
+        const dados = await response.json();
+        if (parameterRef.current === String(id)) setHistory({ ...dados, id: String(id) });
+      }
     } catch { setHistory(null); }
   };
 
@@ -52,7 +54,7 @@ function useDashboard() {
     connection.current = hub;
     hub.on('NovasLeituras', (readings) => {
       const point = readings.find((reading) => String(reading.parametroId) === parameterRef.current);
-      if (point) setHistory((current) => current ? ({ ...current, pontos: [...current.pontos, { t: new Date(point.dataHora).toLocaleTimeString('pt-BR'), v: point.valor }].slice(-60) }) : current);
+      if (point) setHistory((current) => current ? ({ ...current, pontos: [...current.pontos, { t: new Date(point.dataHora).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' }), v: point.valor }].slice(-60) }) : current);
       setUpdatedAt(new Date().toLocaleTimeString('pt-BR'));
       refreshMetrics();
     });
@@ -71,23 +73,32 @@ function MetricCard({ label, value, note, icon, tone = '' }) {
 }
 
 function TrendChart({ history }) {
-  const canvas = useRef(null);
+  const container = useRef(null);
   const chart = useRef(null);
+  const temDados = Boolean(history?.pontos?.length);
+
   useEffect(() => {
-    if (!history || !canvas.current) return undefined;
-    chart.current?.destroy();
-    const context = canvas.current.getContext('2d');
-    const fill = context.createLinearGradient(0, 0, 0, 330);
-    fill.addColorStop(0, 'rgba(245,170,50,.19)'); fill.addColorStop(1, 'rgba(245,170,50,0)');
-    const labels = history.pontos.map((point) => point.t);
-    chart.current = new Chart(context, { type: 'line', data: { labels, datasets: [
-      { label: `${history.nome} (${history.unidade})`, data: history.pontos.map((point) => point.v), borderColor: '#f5aa32', backgroundColor: fill, fill: true, tension: .35, pointRadius: 0, pointHoverRadius: 5, borderWidth: 2 },
-      { label: 'Atenção', data: labels.map(() => history.atencao), borderColor: '#e3bd73', borderDash: [6, 5], pointRadius: 0, borderWidth: 1 },
-      { label: 'Crítico', data: labels.map(() => history.critico), borderColor: '#ef7777', borderDash: [6, 5], pointRadius: 0, borderWidth: 1 },
-    ] }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, plugins: { legend: { position: 'bottom', align: 'start', onClick: (_event, item, legend) => { const chart = legend.chart; chart.setDatasetVisibility(item.datasetIndex, !chart.isDatasetVisible(item.datasetIndex)); chart.update(); }, labels: { usePointStyle: true, pointStyle: 'circle', color: '#aab3c0', font: { family: 'Inter, Arial', size: 12 }, padding: 20, generateLabels: (chart) => Chart.defaults.plugins.legend.labels.generateLabels(chart).map((item) => { const visible = chart.isDatasetVisible(item.datasetIndex); return { ...item, hidden: false, pointStyle: 'circle', fillStyle: visible ? item.strokeStyle : '#11151c', lineWidth: 2 }; }) } }, tooltip: { backgroundColor: '#11151c', padding: 12, cornerRadius: 8 } }, scales: { x: { grid: { display: false }, ticks: { color: '#919bad', maxTicksLimit: 8 } }, y: { title: { display: true, text: history.unidade, color: '#919bad' }, grid: { color: 'rgba(145,155,173,.12)' }, ticks: { color: '#919bad' } } } } });
-    return () => chart.current?.destroy();
-  }, [history]);
-  return <div className="dashboard-chart">{history?.pontos?.length ? <canvas ref={canvas} /> : <div className="dashboard-empty">Selecione um parâmetro com leituras para visualizar a tendência.</div>}</div>;
+    if (!temDados) return undefined;
+    chart.current = criarGraficoLinha(container.current);
+    return () => { chart.current.descartar(); chart.current = null; };
+  }, [temDados]);
+
+  useEffect(() => {
+    if (!temDados) return;
+    const quantidade = history.pontos.length;
+    chart.current.atualizar({
+      chave: history.id,
+      rotulos: history.pontos.map((point) => point.t),
+      unidade: history.unidade,
+      series: [
+        serieMedida(`${history.nome} (${history.unidade})`, history.pontos.map((point) => point.v), '#f5aa32', { preenchida: true }),
+        serieLimite('Atenção', history.atencao, quantidade, CORES_LIMITE.atencao),
+        serieLimite('Crítico', history.critico, quantidade, CORES_LIMITE.critico),
+      ],
+    });
+  }, [history, temDados]);
+
+  return <div className="dashboard-chart">{temDados ? <div ref={container} className="dashboard-chart-canvas" role="img" aria-label={`Tendência de ${history.nome}`} /> : <div className="dashboard-empty">Selecione um parâmetro com leituras para visualizar a tendência.</div>}</div>;
 }
 
 class DashboardErrorBoundary extends React.Component {
@@ -101,16 +112,26 @@ class DashboardErrorBoundary extends React.Component {
 
 function Dashboard() {
   const { metrics, status, updatedAt, parameterId, history, loadHistory, config } = useDashboard();
-  const availability = useMemo(() => metrics.disp == null ? '—' : `${Number(metrics.disp).toFixed(1)}%`, [metrics.disp]);
+  const availability = metrics.disp == null
+    ? '—'
+    : <NumeroAnimado valor={Number(metrics.disp)} formatar={(valor) => `${valor.toFixed(1)}%`} />;
+  // O fundo 3D é só decoração: entra depois que os números e o gráfico já estão na tela.
+  const [fundo, setFundo] = useState(false);
+  const temHistorico = Boolean(history);
+  useEffect(() => {
+    if (fundo) return undefined;
+    const espera = window.setTimeout(() => setFundo(true), temHistorico ? 900 : 3000);
+    return () => window.clearTimeout(espera);
+  }, [fundo, temHistorico]);
   return <div className="dashboard-react">
-    <Suspense fallback={null}><ThreeBackground /></Suspense>
+    {fundo && <Suspense fallback={null}><ThreeBackground /></Suspense>}
     <section className="dashboard-content">
       <header className="dashboard-heading"><div><p className="dashboard-eyebrow"><i /> MONITORAMENTO DE ATIVOS</p><h1>Decisões melhores começam com <em>visibilidade.</em></h1><p className="dashboard-lead">Monitore equipamentos e transforme dados em manutenção inteligente.</p></div><div className="dashboard-status"><div className="dashboard-status-actions">{config.exportUrl && <a className="dashboard-report-button" href={config.exportUrl}>↓ Exportar relatório</a>}<span className={`connection-pill ${status === 'Conectado' ? 'online' : ''}`}>{status}</span></div><small>Atualizado às {updatedAt}</small></div></header>
       <div className="dashboard-metrics">
-        <MetricCard label="Ativos monitorados" value={metrics.total} note="Equipamentos cadastrados" icon="◉" />
-        <MetricCard label="Em operação" value={metrics.operando} note="Ativos operacionais" icon="↗" />
-        <MetricCard label="Alertas ativos" value={metrics.alertas} note="Precisam de acompanhamento" icon="!" tone="metric-critical" />
-        <MetricCard label="Ordens abertas" value={metrics.os} note="Manutenções em andamento" icon="▤" tone="metric-warning" />
+        <MetricCard label="Ativos monitorados" value={<NumeroAnimado valor={metrics.total} />} note="Equipamentos cadastrados" icon="◉" />
+        <MetricCard label="Em operação" value={<NumeroAnimado valor={metrics.operando} />} note="Ativos operacionais" icon="↗" />
+        <MetricCard label="Alertas ativos" value={<NumeroAnimado valor={metrics.alertas} />} note="Precisam de acompanhamento" icon="!" tone="metric-critical" />
+        <MetricCard label="Ordens abertas" value={<NumeroAnimado valor={metrics.os} />} note="Manutenções em andamento" icon="▤" tone="metric-warning" />
         <MetricCard label="Disponibilidade" value={availability} note="Índice da operação" icon="✓" />
       </div>
       <section className="trend-panel"><div className="trend-toolbar"><div><h2>Tendência dos parâmetros</h2><p>Leituras recentes e limites operacionais</p></div><label>Parâmetro<select value={parameterId} onChange={(event) => loadHistory(event.target.value)}>{config.parameters.map((parameter) => <option value={parameter.value} key={parameter.value}>{parameter.text}</option>)}</select></label></div><TrendChart history={history} /></section>

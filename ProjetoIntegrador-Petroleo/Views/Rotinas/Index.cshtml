@@ -1,0 +1,76 @@
+@model List<RotinaManutencao>
+
+@{
+    ViewData["Title"] = "Rotinas de manutenção";
+    var ativo = ViewData["Ativo"] as Ativo;
+}
+
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">CADASTRO DE MANUTENÇÃO</p>
+        <h1>Rotinas de manutenção</h1>
+        <p class="page-subtitle">
+            @(ativo == null
+                ? "O que o manual de cada máquina manda fazer. Os alertas usam este cadastro para montar as ordens de serviço."
+                : $"Rotinas que se aplicam a {ativo.Nome} ({ativo.Tag}).")
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        @if (ativo != null)
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index">Ver todas</a>
+        }
+        <a class="btn btn-primary" asp-action="Create" asp-route-ativoId="@ativo?.Id">＋ Cadastrar rotina</a>
+    </div>
+</div>
+
+@if (TempData["Sucesso"] != null)
+{
+    <div class="alert alert-success">@TempData["Sucesso"]</div>
+}
+
+@if (Model.Count == 0)
+{
+    <div class="empty-state empty-notice">
+        <div class="empty-state-icon">☑</div>
+        <h2 class="section-title">Nenhuma rotina cadastrada</h2>
+        <p>Cadastre as tarefas do manual para que as ordens de serviço venham preenchidas.</p>
+        <a class="btn btn-primary" asp-action="Create" asp-route-ativoId="@ativo?.Id">Cadastrar primeira rotina</a>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="ps-cartoes table table-hover align-middle">
+            <thead>
+                <tr><th data-titulo>Rotina</th><th>Aplica-se a</th><th>Manutenção</th><th>Acionada por</th><th>Intervalo</th><th>Situação</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model)
+                {
+                    <tr>
+                        <td class="fw-semibold">@r.Titulo</td>
+                        <td>
+                            @if (r.AtivoId != null)
+                            {
+                                @r.Ativo?.Nome <span class="asset-tag">@r.Ativo?.Tag</span>
+                            }
+                            else
+                            {
+                                <span>Tipo: @r.TipoAtivo</span>
+                            }
+                        </td>
+                        <td>@r.TipoManutencao.Nome()</td>
+                        <td>@(r.ParametroNome == null ? "—" : $"Alerta em “{r.ParametroNome}”")</td>
+                        <td>@(r.IntervaloDias == null ? "—" : $"{r.IntervaloDias} dias")</td>
+                        <td><span class="badge @(r.Ativa ? "bg-success" : "bg-secondary")">@(r.Ativa ? "Em uso" : "Desativada")</span></td>
+                        <td class="text-end text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@r.Id">Editar</a>
+                            <a class="btn btn-sm btn-outline-secondary" asp-action="Delete" asp-route-id="@r.Id">Excluir</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

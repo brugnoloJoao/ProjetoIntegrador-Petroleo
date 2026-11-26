@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Data;
 using ProjetoIntegrador_Petroleo.Models;
+using ProjetoIntegrador_Petroleo.Services;
+using ProjetoIntegrador_Petroleo.ViewModels;
 
 namespace ProjetoIntegrador_Petroleo.Controllers;
 
@@ -14,11 +16,23 @@ public class OrdemServicoController : Controller
     private readonly AppDbContext _db;
     private readonly UserManager<IdentityUser> _users;
 
-    public OrdemServicoController(AppDbContext db, UserManager<IdentityUser> users)
+    private readonly PlanejamentoManutencao _planejamento;
+    private readonly RegistroOcorrencias _registro;
+
+    public OrdemServicoController(
+        AppDbContext db,
+        UserManager<IdentityUser> users,
+        PlanejamentoManutencao planejamento,
+        RegistroOcorrencias registro)
     {
         _db = db;
         _users = users;
+        _planejamento = planejamento;
+        _registro = registro;
     }
+
+    private bool ApenasOperador =>
+        User.IsInRole("Operador") && !User.IsInRole("Engenheiro") && !User.IsInRole("Gestor");
 
     public async Task<IActionResult> Index(StatusOrdem? status)
     {
@@ -45,8 +59,31 @@ public class OrdemServicoController : Controller
             .ToListAsync();
 
         ViewData["Filtro"] = status?.ToString() ?? "";
+        if (PodeAbrirOrdem())
+            ViewData["Sugestoes"] = await _planejamento.SugestoesAsync();
         return View(lista);
     }
+
+    // Trecho da tela atualizado periodicamente com as ordens prontas para conferência.
+    [HttpGet]
+    [Authorize(Roles = "Operador,Engenheiro,Gestor")]
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public async Task<IActionResult> Sugestoes() =>
+        PartialView("_Sugestoes", await _planejamento.SugestoesAsync());
+
+    // Rotinas cadastradas para o equipamento escolhido no formulário.
+    [HttpGet]
+    [Authorize(Roles = "Operador,Engenheiro,Gestor")]
+    public async Task<IActionResult> Rotinas(int ativoId)
+    {
+        var ativo = await _db.Ativos.AsNoTracking().FirstOrDefaultAsync(a => a.Id == ativoId);
+        var rotinas = ativo is null ? [] : await _planejamento.RotinasDoAtivoAsync(ativo);
+        return PartialView("_RotinasChecklist",
+            new RotinasChecklistVM(rotinas, new HashSet<int>(), ativo is not null));
+    }
+
+    private bool PodeAbrirOrdem() =>
+        User.IsInRole("Operador") || User.IsInRole("Engenheiro") || User.IsInRole("Gestor");
 
     public async Task<IActionResult> Details(int id)
     {
@@ -54,6 +91,7 @@ public class OrdemServicoController : Controller
             .Include(o => o.Ativo)
             .Include(o => o.Operador)
             .Include(o => o.Alerta).ThenInclude(a => a!.Parametro)
+            .Include(o => o.Itens.OrderBy(i => i.Id))
             .AsNoTracking()
             .AsQueryable();
 
@@ -76,12 +114,14 @@ public class OrdemServicoController : Controller
     // ---------- Abrir OS (HU9) ----------
     [HttpGet]
     [Authorize(Roles = "Operador,Engenheiro,Gestor")]
-    public async Task<IActionResult> Create(int? alertaId, int? ativoId)
+    public async Task<IActionResult> Create(int? alertaId, int? ativoId, int? rotinaId)
     {
         var os = new OrdemServico();
         var podeAtribuirOperador = User.IsInRole("Engenheiro") || User.IsInRole("Gestor");
         if (!podeAtribuirOperador)
             os.OperadorId = _users.GetUserId(User);
+
+        var marcadas = new HashSet<int>();
 
         if (alertaId != null)
         {
@@ -91,22 +131,36 @@ public class OrdemServicoController : Controller
             if (alerta == null) return NotFound();
 
             // Evita duas OS abertas para o mesmo alerta
-            var existente = await _db.OrdensServico.FirstOrDefaultAsync(o =>
-                o.AlertaId == alertaId &&
-                o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada);
+            var existente = await OrdemAbertaDoAlertaAsync(alerta.Id);
             if (existente != null)
-            {
-                TempData["Aviso"] = "Já existe uma OS em andamento para este alerta.";
-                return RedirectToAction(nameof(Details), new { id = existente.Id });
-            }
+                return RedirecionarParaExistente(existente, "Já existe uma OS em andamento para este alerta.");
+
+            var parametro = alerta.Parametro!;
+            var ativo = parametro.Ativo!;
+            var indicadas = (await _planejamento.RotinasDoAtivoAsync(ativo))
+                .Where(r => r.AcionadaPor(parametro.Nome))
+                .ToList();
+            marcadas = indicadas.Select(r => r.Id).ToHashSet();
 
             os.AlertaId = alerta.Id;
-            os.AtivoId = alerta.Parametro!.AtivoId;
-            os.Titulo = $"{alerta.Parametro.Nome} fora do limite em {alerta.Parametro.Ativo!.Nome}";
-            os.Descricao = $"Alerta {alerta.Severidade} em {alerta.DataHora:dd/MM/yyyy HH:mm}: " +
-                           $"valor {alerta.ValorMedido:F1} {alerta.Parametro.Unidade} " +
-                           $"(limite {alerta.LimiteViolado:F1}).";
+            os.Origem = OrigemOrdem.Alerta;
+            os.AtivoId = ativo.Id;
+            os.Titulo = Limitar($"{parametro.Nome} acima do limite · {ativo.Nome}", 120);
+            var descricao = $"Alerta de severidade {alerta.Severidade.Nome()} em {alerta.DataHora.HorarioDeBrasilia()} " +
+                            $"(horário de Brasília): {parametro.Nome} em {alerta.ValorMedido:F1} {parametro.Unidade} " +
+                            $"(limite {alerta.LimiteViolado:F1} {parametro.Unidade}).";
+            var evolucao = await _registro.EvolucaoAsync(alerta, parametro);
+            descricao += $"\n{evolucao.Resumo(alerta, parametro.Unidade)}";
+            var semOrdem = await _planejamento.AlertasSemOrdem()
+                .CountAsync(a => a.ParametroId == parametro.Id);
+            if (semOrdem > 1)
+                descricao += $"\nOcorrências deste parâmetro ainda sem OS: {semOrdem}.";
+            if (indicadas.Count > 0)
+                descricao += $"\nRotinas indicadas pelo cadastro: {string.Join("; ", indicadas.Select(r => r.Titulo))}.";
+            os.Descricao = Limitar(descricao, 1000);
             os.Prioridade = alerta.Severidade == Severidade.Critico ? Prioridade.Alta : Prioridade.Media;
+            os.PecasMateriais = JuntarPecas(indicadas);
+            ViewData["TipoSugerido"] = indicadas.FirstOrDefault()?.TipoManutencao;
         }
         else if (ativoId != null)
         {
@@ -114,21 +168,45 @@ public class OrdemServicoController : Controller
             if (ativo == null) return NotFound();
 
             os.AtivoId = ativo.Id;
-            os.Titulo = $"Manutenção preventiva em {ativo.Nome}";
-            os.Descricao = "Intervenção planejada com base no ranking de risco de falha.";
             os.Prioridade = Prioridade.Media;
+
+            if (rotinaId != null)
+            {
+                var rotina = (await _planejamento.RotinasDoAtivoAsync(ativo)).FirstOrDefault(r => r.Id == rotinaId);
+                if (rotina == null) return NotFound();
+
+                if (await _planejamento.OrdemAbertaDaRotinaAsync(rotina.Id, ativo.Id) is { } ordemId)
+                    return RedirecionarParaExistente(
+                        await _db.OrdensServico.AsNoTracking().FirstAsync(o => o.Id == ordemId),
+                        "Já existe uma OS em andamento para esta rotina.");
+
+                marcadas.Add(rotina.Id);
+                os.Origem = OrigemOrdem.Rotina;
+                ViewData["RotinaOrigemId"] = rotina.Id;
+                ViewData["TipoSugerido"] = rotina.TipoManutencao;
+                os.Titulo = Limitar($"{rotina.Titulo} · {ativo.Nome}", 120);
+                os.Descricao = rotina.IntervaloDias is null
+                    ? "Rotina de manutenção cadastrada para o equipamento."
+                    : $"Rotina periódica cadastrada para o equipamento (a cada {rotina.IntervaloDias} dias).";
+                os.PecasMateriais = JuntarPecas([rotina]);
+            }
+            else
+            {
+                os.Titulo = Limitar($"Manutenção preventiva em {ativo.Nome}", 120);
+                os.Descricao = "Intervenção planejada com base no ranking de risco de falha.";
+            }
         }
 
-        await CarregarAtivosAsync(os.AtivoId);
-        if (podeAtribuirOperador)
-            await CarregarOperadoresAsync(os.OperadorId);
+        await PrepararFormularioAsync(os, marcadas, podeAtribuirOperador);
         return View(os);
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = "Operador,Engenheiro,Gestor")]
     public async Task<IActionResult> Create(
-        [Bind("AtivoId,AlertaId,Titulo,Descricao,Prioridade,OperadorId")] OrdemServico os)
+        [Bind("AtivoId,AlertaId,Titulo,Descricao,Prioridade,OperadorId,TipoManutencao,PecasMateriais")] OrdemServico os,
+        int[]? rotinas,
+        int? rotinaOrigemId)
     {
         ModelState.Remove(nameof(OrdemServico.SolicitanteId));
 
@@ -143,23 +221,117 @@ public class OrdemServicoController : Controller
             ModelState.AddModelError(nameof(os.OperadorId), "Selecione uma conta ativa com perfil de Operador.");
         }
 
+        // A escolha do tipo é a conferência de quem abre a ordem.
+        if (os.TipoManutencao is null || !Enum.IsDefined(os.TipoManutencao.Value))
+        {
+            ModelState.Remove(nameof(os.TipoManutencao));
+            ModelState.AddModelError(nameof(os.TipoManutencao), "Escolha o tipo de manutenção.");
+        }
+
+        var ativo = await _db.Ativos.AsNoTracking().FirstOrDefaultAsync(a => a.Id == os.AtivoId);
+        if (ativo is null && ModelState[nameof(os.AtivoId)]?.Errors.Count is null or 0)
+            ModelState.AddModelError(nameof(os.AtivoId), "Selecione o equipamento.");
+
+        if (os.AlertaId != null)
+        {
+            var ativoDoAlerta = await _db.Alertas
+                .Where(a => a.Id == os.AlertaId)
+                .Select(a => (int?)a.Parametro!.AtivoId)
+                .FirstOrDefaultAsync();
+            if (ativoDoAlerta is null || ativoDoAlerta != os.AtivoId)
+                ModelState.AddModelError(nameof(os.AlertaId), "O alerta informado não pertence a este equipamento.");
+            else if (await OrdemAbertaDoAlertaAsync(os.AlertaId.Value) is { } existente)
+                return RedirecionarParaExistente(existente, "Já existe uma OS em andamento para este alerta.");
+        }
+
+        // Só entram no checklist rotinas que realmente valem para o equipamento.
+        var escolhidas = ativo is null
+            ? []
+            : (await _planejamento.RotinasDoAtivoAsync(ativo))
+                .Where(r => rotinas?.Contains(r.Id) == true)
+                .ToList();
+
+        var origemRotina = os.AlertaId == null && escolhidas.Any(r => r.Id == rotinaOrigemId);
+        if (origemRotina && await _planejamento.OrdemAbertaDaRotinaAsync(rotinaOrigemId!.Value, os.AtivoId) is { } ordemId)
+            return RedirecionarParaExistente(
+                await _db.OrdensServico.AsNoTracking().FirstAsync(o => o.Id == ordemId),
+                "Já existe uma OS em andamento para esta rotina.");
+
+        os.Origem = os.AlertaId != null ? OrigemOrdem.Alerta
+            : origemRotina ? OrigemOrdem.Rotina
+            : OrigemOrdem.Manual;
+
         if (!ModelState.IsValid)
         {
-            await CarregarAtivosAsync(os.AtivoId);
-            if (podeAtribuirOperador)
-                await CarregarOperadoresAsync(os.OperadorId);
+            ViewData["RotinaOrigemId"] = origemRotina ? rotinaOrigemId : null;
+            await PrepararFormularioAsync(os, escolhidas.Select(r => r.Id).ToHashSet(), podeAtribuirOperador);
             return View(os);
         }
 
         os.SolicitanteId = User.Identity?.Name ?? "Usuário";
         os.Status = StatusOrdem.Aberta;
         os.DataAbertura = DateTime.UtcNow;
+        os.Itens = escolhidas
+            .SelectMany(r => (r.Etapas().Any() ? r.Etapas() : [r.Titulo])
+                .Select(etapa => new OrdemServicoItem { RotinaManutencaoId = r.Id, Descricao = Limitar(etapa, 300) }))
+            .ToList();
 
         _db.OrdensServico.Add(os);
         await _db.SaveChangesAsync();
+        if (os.AlertaId != null)
+            await ReconhecerAlertasAtendidosAsync(os);
 
         TempData["Sucesso"] = "Ordem de serviço aberta. Aguardando aprovação do gestor.";
         return RedirectToAction(nameof(Details), new { id = os.Id });
+    }
+
+    // Quem abre a OS está atendendo o alerta: ele passa a "Reconhecido" e sai das
+    // notificações. A normalização continua sendo decidida pelas leituras.
+    private async Task ReconhecerAlertasAtendidosAsync(OrdemServico os)
+    {
+        var parametroId = await _db.Alertas.Where(a => a.Id == os.AlertaId)
+            .Select(a => a.ParametroId)
+            .FirstAsync();
+        var alertas = await _db.Alertas
+            .Where(a => a.ParametroId == parametroId && a.ReconhecidoEm == null
+                && (a.Status == StatusAlerta.Ativo || a.Id == os.AlertaId))
+            .ToListAsync();
+
+        foreach (var alerta in alertas)
+        {
+            alerta.Observacao = $"Ordem de serviço #{os.Id} aberta.";
+            alerta.ReconhecidoPorId = os.SolicitanteId;
+            alerta.ReconhecidoEm = DateTime.UtcNow;
+            if (alerta.Status == StatusAlerta.Ativo)
+                alerta.Status = StatusAlerta.Reconhecido;
+        }
+        await _db.SaveChangesAsync();
+    }
+
+    // ---------- Checklist ----------
+    // Quem executa marca as etapas; iniciar e encerrar continuam restritos ao engenheiro.
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Roles = "Operador,Engenheiro")]
+    public async Task<IActionResult> MarcarItem(int id, int itemId, bool concluido)
+    {
+        var item = await _db.OrdensServicoItens
+            .Include(i => i.OrdemServico)
+            .FirstOrDefaultAsync(i => i.Id == itemId && i.OrdemServicoId == id);
+        if (item?.OrdemServico == null) return NotFound();
+        if (ApenasOperador && item.OrdemServico.OperadorId != _users.GetUserId(User)) return NotFound();
+
+        if (item.OrdemServico.Status != StatusOrdem.EmAndamento)
+        {
+            TempData["Aviso"] = "O checklist só pode ser preenchido com a OS em andamento.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        item.Concluido = concluido;
+        item.ConcluidoPor = concluido ? User.Identity?.Name : null;
+        item.ConcluidoEm = concluido ? DateTime.UtcNow : null;
+        await _db.SaveChangesAsync();
+
+        return RedirectToAction(nameof(Details), "OrdemServico", new { id }, "checklist");
     }
 
     [HttpPost, ValidateAntiForgeryToken]
@@ -270,6 +442,46 @@ public class OrdemServicoController : Controller
             && (!operador.LockoutEnd.HasValue || operador.LockoutEnd <= DateTimeOffset.UtcNow)
             && await _users.IsInRoleAsync(operador, "Operador");
     }
+    private Task<OrdemServico?> OrdemAbertaDoAlertaAsync(int alertaId) =>
+        _db.OrdensServico.AsNoTracking().FirstOrDefaultAsync(o =>
+            o.AlertaId == alertaId &&
+            o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada);
+
+    // O operador só abre a própria OS; nos outros casos volta para a lista.
+    private IActionResult RedirecionarParaExistente(OrdemServico existente, string aviso)
+    {
+        TempData["Aviso"] = aviso;
+        return ApenasOperador && existente.OperadorId != _users.GetUserId(User)
+            ? RedirectToAction(nameof(Index))
+            : RedirectToAction(nameof(Details), new { id = existente.Id });
+    }
+
+    private async Task PrepararFormularioAsync(OrdemServico os, HashSet<int> marcadas, bool podeAtribuirOperador)
+    {
+        await CarregarAtivosAsync(os.AtivoId);
+        if (podeAtribuirOperador)
+            await CarregarOperadoresAsync(os.OperadorId);
+
+        var ativo = await _db.Ativos.AsNoTracking().FirstOrDefaultAsync(a => a.Id == os.AtivoId);
+        var rotinas = ativo is null ? [] : await _planejamento.RotinasDoAtivoAsync(ativo);
+        ViewData["Ativo"] = ativo;
+        ViewData["Checklist"] = new RotinasChecklistVM(
+            rotinas.OrderByDescending(r => marcadas.Contains(r.Id)).ThenBy(r => r.Titulo).ToList(),
+            marcadas, ativo is not null);
+    }
+
+    private static string? JuntarPecas(IEnumerable<RotinaManutencao> rotinas)
+    {
+        var pecas = string.Join("; ", rotinas
+            .Select(r => r.PecasMateriais?.Trim())
+            .Where(p => !string.IsNullOrEmpty(p))
+            .Distinct());
+        return pecas.Length == 0 ? null : Limitar(pecas, 1000);
+    }
+
+    private static string Limitar(string texto, int maximo) =>
+        texto.Length <= maximo ? texto : texto[..(maximo - 1)] + "…";
+
     private async Task CarregarAtivosAsync(int? selecionado)
     {
         var ativos = await _db.Ativos.AsNoTracking().OrderBy(a => a.Nome).ToListAsync();

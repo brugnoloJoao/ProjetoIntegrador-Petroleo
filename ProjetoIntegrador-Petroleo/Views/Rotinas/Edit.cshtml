@@ -1,0 +1,28 @@
+@model RotinaManutencao
+
+@{
+    ViewData["Title"] = "Editar rotina";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">CADASTRO DE MANUTENÇÃO</p>
+        <h1>Editar rotina</h1>
+        <p class="page-subtitle">Ordens já abertas mantêm o checklist com que foram criadas.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para rotinas</a>
+</section>
+
+<section class="create-card">
+    <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="create-form">
+        <partial name="_Form" model="Model" />
+        <div class="create-form-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Salvar alterações <span aria-hidden="true">→</span></button>
+        </div>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

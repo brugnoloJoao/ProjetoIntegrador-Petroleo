@@ -33,7 +33,10 @@ builder.Services.ConfigureApplicationCookie(o =>
 
 builder.Services.AddSingleton<SimuladorEstado>();
 builder.Services.AddSingleton<Maquina3DControleEstado>();
+builder.Services.AddScoped<PlanejamentoManutencao>();
+builder.Services.AddScoped<RegistroOcorrencias>();
 builder.Services.AddHostedService<SimuladorLeituras>();
+builder.Services.AddHostedService<AquecimentoInicial>();
 
 builder.Services.AddSignalR();
 

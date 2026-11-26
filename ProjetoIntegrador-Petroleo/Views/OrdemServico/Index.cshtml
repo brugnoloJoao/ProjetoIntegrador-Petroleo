@@ -22,6 +22,13 @@
     <div class="alert alert-warning">@TempData["Aviso"]</div>
 }
 
+@if (ViewData["Sugestoes"] is IReadOnlyList<ProjetoIntegrador_Petroleo.ViewModels.SugestaoOrdemVM> sugestoes)
+{
+    <section id="os-sugestoes" class="card detail-section-card os-suggestions" data-url="@Url.Action("Sugestoes")">
+        <partial name="_Sugestoes" model="sugestoes" />
+    </section>
+}
+
 <div id="os-filters-app" class="mb-3" data-status="@filtro" data-statuses="@string.Join(",", Enum.GetNames<StatusOrdem>())"></div>
 
 @if (!Model.Any())
@@ -39,17 +46,18 @@
 else
 {
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="ps-cartoes table table-hover align-middle">
             <thead>
-                <tr><th>#</th><th>Título</th><th>Equipamento</th><th>Operador responsável</th><th>Prioridade</th><th>Status</th><th>Abertura</th><th></th></tr>
+                <tr><th>#</th><th data-titulo>Título</th><th>Equipamento</th><th>Tipo</th><th>Operador responsável</th><th>Prioridade</th><th>Status</th><th>Abertura</th><th></th></tr>
             </thead>
             <tbody>
                 @foreach (var o in Model)
                 {
-                    <tr data-order-row data-status="@o.Status" data-search="@($"{o.Id} {o.Titulo} {o.Ativo?.Nome} {o.Operador?.Email} {o.Prioridade} {o.Status}")">
+                    <tr data-order-row data-status="@o.Status" data-search="@($"{o.Id} {o.Titulo} {o.Ativo?.Nome} {o.Operador?.Email} {o.Prioridade} {o.Status} {o.TipoManutencao?.Nome()}")">
                         <td>@o.Id</td>
                         <td>@o.Titulo</td>
                         <td>@o.Ativo?.Nome</td>
+                        <td>@(o.TipoManutencao?.Nome() ?? "—")</td>
                         <td>@(o.Operador?.Email ?? "Não atribuído")</td>
                         <td>
                             <span class="badge @(o.Prioridade == Prioridade.Alta ? "bg-danger" : o.Prioridade == Prioridade.Media ? "bg-warning text-dark" : "bg-secondary")">@o.Prioridade</span>
@@ -64,7 +72,7 @@ else
                                       _ => "bg-secondary"
                                   })">@o.Status</span>
                         </td>
-                        <td>@o.DataAbertura.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@o.DataAbertura.HorarioDeBrasilia()</td>
                         <td><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@o.Id">Abrir</a></td>
                     </tr>
                 }
@@ -75,4 +83,22 @@ else
 
 @section Scripts {
     <script type="module" src="~/dist/filters.js" asp-append-version="true"></script>
+    <script>
+        (() => {
+            const panel = document.getElementById('os-sugestoes');
+            if (!panel) return;
+            setInterval(async () => {
+                // Não troca o conteúdo enquanto o usuário está em um dos botões.
+                if (document.hidden || panel.contains(document.activeElement)) return;
+                try {
+                    const response = await fetch(panel.dataset.url);
+                    if (!response.ok || response.redirected) return;
+                    const scroll = panel.querySelector('.os-suggestion-grid')?.scrollTop ?? 0;
+                    panel.innerHTML = await response.text();
+                    const grid = panel.querySelector('.os-suggestion-grid');
+                    if (grid) grid.scrollTop = scroll;
+                } catch { /* Mantém a última lista enquanto estiver sem conexão. */ }
+            }, 15000);
+        })();
+    </script>
 }

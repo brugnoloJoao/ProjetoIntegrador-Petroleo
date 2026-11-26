@@ -1,0 +1,88 @@
+@model ProjetoIntegrador_Petroleo.ViewModels.TurnoVM
+@using ProjetoIntegrador_Petroleo.Models
+
+@{
+    var percentual = Model.Detectados == 0 ? 100 : (int)Math.Round(Model.Atendidos * 100.0 / Model.Detectados);
+    var media = Model.TempoMedioResposta;
+    var mediaTexto = media is null ? "—"
+        : media.Value.TotalMinutes < 1 ? $"{(int)media.Value.TotalSeconds} s"
+        : media.Value.TotalHours < 1 ? $"{media.Value.Minutes} min {media.Value.Seconds} s"
+        : $"{(int)media.Value.TotalHours} h {media.Value.Minutes} min";
+    static string Utc(DateTime data) => DateTime.SpecifyKind(data, DateTimeKind.Utc).ToString("o");
+}
+
+<p class="shift-name">Turno: <strong>@Model.Nome</strong> · iniciado em @Model.InicioUtc.HorarioDeBrasilia("dd/MM HH:mm")</p>
+
+<div class="shift-grid">
+    <article class="card shift-card @(Model.CriticoEmAberto ? "is-bad" : "is-good")">
+        <span>Sem alerta crítico há</span>
+        @if (Model.CriticoEmAberto)
+        {
+            <strong>⛔ Crítico em aberto</strong>
+        }
+        else if (Model.UltimoCritico is { } ultimo)
+        {
+            <strong>✓ <span data-desde="@Utc(ultimo)">—</span></strong>
+        }
+        else
+        {
+            <strong>✓ Nenhum registrado</strong>
+        }
+        <small>Considera o último alerta crítico detectado</small>
+    </article>
+    <article class="card shift-card">
+        <span>Alertas atendidos</span>
+        <strong data-contar>@percentual%</strong>
+        <small>@Model.Atendidos de @Model.Detectados detectados no turno</small>
+        <div class="progress" style="height:8px"><div class="progress-bar bg-success" style="width:@(percentual)%"></div></div>
+    </article>
+    <article class="card shift-card">
+        <span>Tempo médio de resposta</span>
+        <strong data-contar>@mediaTexto</strong>
+        <small>Do alerta até o reconhecimento</small>
+    </article>
+    <article class="card shift-card @(Model.Aguardando > 0 ? "is-warn" : "")">
+        <span>Aguardando atendimento</span>
+        <strong data-contar>@Model.Aguardando</strong>
+        <small>Alertas ativos sem reconhecimento agora</small>
+    </article>
+    <article class="card shift-card">
+        <span>Alertas críticos no turno</span>
+        <strong data-contar>@Model.Criticos</strong>
+        <small>Entre os @Model.Detectados detectados</small>
+    </article>
+    <article class="card shift-card">
+        <span>@(Model.SoMinhasOrdens ? "Minhas ordens no turno" : "Ordens no turno")</span>
+        <strong data-contar>@Model.OrdensAbertas</strong>
+        <small>abertas · encerradas: @Model.OrdensEncerradas</small>
+    </article>
+</div>
+
+<section class="card detail-section-card">
+    <div class="detail-section-heading">
+        <div>
+            <p class="eyebrow">PRIORIDADE</p>
+            <h2>Esperando há mais tempo</h2>
+            <p class="section-kicker">Críticos primeiro. Clique para ver o alerta e abrir a ordem de serviço.</p>
+        </div>
+    </div>
+    @if (Model.MaisAntigos.Count == 0)
+    {
+        <p class="os-suggestion-empty">✓ Nenhum alerta esperando atendimento.</p>
+    }
+    else
+    {
+        <ul class="shift-list">
+            @foreach (var a in Model.MaisAntigos)
+            {
+                <li>
+                    <a asp-controller="Alertas" asp-action="Detalhes" asp-route-id="@a.Id">
+                        <span class="badge @(a.Critico ? "bg-danger" : "telemetry-warning")">@(a.Critico ? "⛔ Crítico" : "⚠ Atenção")</span>
+                        <span><strong>@a.Parametro</strong> @a.Ativo <span class="asset-tag">@a.Tag</span></span>
+                        <span data-espera="@Utc(a.DataHora)"></span>
+                    </a>
+                </li>
+            }
+        </ul>
+    }
+</section>

@@ -1,0 +1,104 @@
+@model RotinaManutencao
+@using Microsoft.AspNetCore.Mvc.Rendering
+
+@{
+    var bloqueada = ViewData["Bloqueada"] as bool? ?? false;
+    var escopo = Context.Request.HasFormContentType
+        ? Context.Request.Form["escopo"].ToString()
+        : Model.AtivoId != null ? "ativo" : "tipo";
+}
+
+<div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+
+<div class="create-form-grid">
+    <div class="create-field create-field-wide">
+        <label asp-for="Titulo" class="form-label"></label>
+        <input asp-for="Titulo" class="form-control" placeholder="Ex.: Trocar o óleo lubrificante" autocomplete="off" />
+        <span asp-validation-for="Titulo" class="field-validation"></span>
+    </div>
+
+    @if (bloqueada)
+    {
+        <div class="create-context-note create-field-wide">
+            <span aria-hidden="true">◈</span>
+            Esta rotina já entrou em uma ordem de serviço, então o equipamento ou tipo não pode ser trocado.
+        </div>
+    }
+    else
+    {
+        <div class="create-field">
+            <label for="escopo" class="form-label">A rotina vale para</label>
+            <select id="escopo" name="escopo" class="form-select">
+                <option value="tipo" selected="@(escopo == "tipo")">Todas as máquinas de um tipo</option>
+                <option value="ativo" selected="@(escopo == "ativo")">Um equipamento específico</option>
+            </select>
+        </div>
+
+        <div class="create-field" data-escopo="tipo" hidden="@(escopo != "tipo")">
+            <label asp-for="TipoAtivo" class="form-label"></label>
+            <input asp-for="TipoAtivo" class="form-control" list="tipos-equipamento" placeholder="Ex.: Bomba centrífuga" />
+            <partial name="_TiposEquipamento" />
+            <span asp-validation-for="TipoAtivo" class="field-validation"></span>
+        </div>
+
+        <div class="create-field" data-escopo="ativo" hidden="@(escopo != "ativo")">
+            <label asp-for="AtivoId" class="form-label"></label>
+            <select asp-for="AtivoId" asp-items="(SelectList)ViewBag.Ativos" class="form-select">
+                <option value="">Selecione o equipamento</option>
+            </select>
+            <span asp-validation-for="AtivoId" class="field-validation"></span>
+        </div>
+    }
+
+    <div class="create-field">
+        <label asp-for="TipoManutencao" class="form-label"></label>
+        <select asp-for="TipoManutencao" asp-items="Html.GetEnumSelectList<TipoManutencao>()" class="form-select"></select>
+        <span asp-validation-for="TipoManutencao" class="field-validation"></span>
+    </div>
+
+    <div class="create-field">
+        <label asp-for="ParametroNome" class="form-label"></label>
+        <input asp-for="ParametroNome" class="form-control" list="nomes-parametros" placeholder="Ex.: vibra" />
+        <datalist id="nomes-parametros">
+            @foreach (var nome in (List<string>)ViewBag.Parametros)
+            {
+                <option value="@nome"></option>
+            }
+        </datalist>
+        <span asp-validation-for="ParametroNome" class="field-validation"></span>
+        <span class="create-field-hint">Quando um alerta ocorrer em um parâmetro com esse nome, a rotina vem marcada na OS. Deixe vazio se não depender de alerta.</span>
+    </div>
+
+    <div class="create-field">
+        <label asp-for="IntervaloDias" class="form-label"></label>
+        <input asp-for="IntervaloDias" class="form-control" type="number" min="1" max="3650" placeholder="Ex.: 90" />
+        <span asp-validation-for="IntervaloDias" class="field-validation"></span>
+        <span class="create-field-hint">Opcional. Vencido o prazo desde a última OS encerrada (ou desde o cadastro), o sistema sugere uma preventiva.</span>
+    </div>
+
+    <div class="create-field create-field-wide">
+        <label asp-for="Instrucoes" class="form-label"></label>
+        <textarea asp-for="Instrucoes" class="form-control" rows="5" placeholder="Parar e bloquear o equipamento&#10;Drenar o óleo usado&#10;Abastecer até o nível indicado"></textarea>
+        <span asp-validation-for="Instrucoes" class="field-validation"></span>
+    </div>
+
+    <div class="create-field create-field-wide">
+        <label asp-for="PecasMateriais" class="form-label"></label>
+        <input asp-for="PecasMateriais" class="form-control" placeholder="Ex.: Óleo ISO VG 68; junta do bujão" />
+        <span asp-validation-for="PecasMateriais" class="field-validation"></span>
+    </div>
+
+    <label class="create-access-toggle create-field-wide">
+        <span class="form-check-input-wrap"><input asp-for="Ativa" class="form-check-input" /></span>
+        <span>Rotina em uso. Desmarque para manter o cadastro sem sugerir novas ordens.</span>
+    </label>
+</div>
+
+<script>
+    (() => {
+        const select = document.getElementById('escopo');
+        select?.addEventListener('change', () => {
+            document.querySelectorAll('[data-escopo]').forEach((field) => { field.hidden = field.dataset.escopo !== select.value; });
+        });
+    })();
+</script>

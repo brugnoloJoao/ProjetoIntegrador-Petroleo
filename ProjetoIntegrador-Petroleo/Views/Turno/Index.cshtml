@@ -1,0 +1,16 @@
+@model ProjetoIntegrador_Petroleo.ViewModels.TurnoVM
+@{
+    ViewData["Title"] = "Placar do turno";
+}
+
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">ACOMPANHAMENTO DO TURNO</p>
+        <h1>Placar do turno</h1>
+        <p class="page-subtitle">Como os alertas estão sendo atendidos desde o início do turno atual.</p>
+    </div>
+</section>
+
+<div data-atualizar="@Url.Action("Placar")">
+    <partial name="_Placar" model="Model" />
+</div>

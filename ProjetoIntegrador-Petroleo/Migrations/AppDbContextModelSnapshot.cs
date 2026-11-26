@@ -398,6 +398,13 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("Origem")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PecasMateriais")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<int>("Prioridade")
                         .HasColumnType("int");
 
@@ -406,6 +413,9 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TipoManutencao")
                         .HasColumnType("int");
 
                     b.Property<string>("Titulo")
@@ -422,6 +432,44 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                     b.HasIndex("OperadorId");
 
                     b.ToTable("OrdensServico");
+                });
+
+            modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.OrdemServicoItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Concluido")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ConcluidoEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ConcluidoPor")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("OrdemServicoId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RotinaManutencaoId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrdemServicoId");
+
+                    b.HasIndex("RotinaManutencaoId");
+
+                    b.ToTable("OrdensServicoItens");
                 });
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Parametro", b =>
@@ -456,6 +504,57 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                     b.HasIndex("AtivoId");
 
                     b.ToTable("Parametros");
+                });
+
+            modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.RotinaManutencao", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativa")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("AtivoId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CriadaEm")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Instrucoes")
+                        .HasMaxLength(1500)
+                        .HasColumnType("nvarchar(1500)");
+
+                    b.Property<int?>("IntervaloDias")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ParametroNome")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PecasMateriais")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("TipoAtivo")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("TipoManutencao")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AtivoId");
+
+                    b.ToTable("RotinasManutencao");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -566,6 +665,23 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                     b.Navigation("Operador");
                 });
 
+            modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.OrdemServicoItem", b =>
+                {
+                    b.HasOne("ProjetoIntegrador_Petroleo.Models.OrdemServico", "OrdemServico")
+                        .WithMany("Itens")
+                        .HasForeignKey("OrdemServicoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ProjetoIntegrador_Petroleo.Models.RotinaManutencao", "RotinaManutencao")
+                        .WithMany()
+                        .HasForeignKey("RotinaManutencaoId");
+
+                    b.Navigation("OrdemServico");
+
+                    b.Navigation("RotinaManutencao");
+                });
+
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Parametro", b =>
                 {
                     b.HasOne("ProjetoIntegrador_Petroleo.Models.Ativo", "Ativo")
@@ -577,9 +693,24 @@ namespace ProjetoIntegrador_Petroleo.Migrations
                     b.Navigation("Ativo");
                 });
 
+            modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.RotinaManutencao", b =>
+                {
+                    b.HasOne("ProjetoIntegrador_Petroleo.Models.Ativo", "Ativo")
+                        .WithMany()
+                        .HasForeignKey("AtivoId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Ativo");
+                });
+
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Ativo", b =>
                 {
                     b.Navigation("Parametros");
+                });
+
+            modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.OrdemServico", b =>
+                {
+                    b.Navigation("Itens");
                 });
 
             modelBuilder.Entity("ProjetoIntegrador_Petroleo.Models.Parametro", b =>

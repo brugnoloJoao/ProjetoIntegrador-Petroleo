@@ -60,28 +60,28 @@ else
         <div class="col-6 col-md">
             <div class="card text-center">
                 <div class="card-body">
-                    <div class="fs-4">@Model.TotalLeituras.ToString("N0")</div><div class="text-muted">Leituras</div>
+                    <div class="fs-4" data-contar>@Model.TotalLeituras.ToString("N0")</div><div class="text-muted">Leituras</div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="card text-center">
                 <div class="card-body">
-                    <div class="fs-4">@Model.Minimo?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Mínimo</div>
+                    <div class="fs-4" data-contar>@Model.Minimo?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Mínimo</div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="card text-center">
                 <div class="card-body">
-                    <div class="fs-4">@Model.Media?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Média</div>
+                    <div class="fs-4" data-contar>@Model.Media?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Média</div>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md">
             <div class="card text-center">
                 <div class="card-body">
-                    <div class="fs-4">@Model.Maximo?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Máximo</div>
+                    <div class="fs-4" data-contar>@Model.Maximo?.ToString("F1") @Model.Parametro.Unidade</div><div class="text-muted">Máximo</div>
                 </div>
             </div>
         </div>
@@ -89,7 +89,16 @@ else
 
     <div class="card mb-4">
         <div class="card-body">
-            <canvas id="grafico" height="100"></canvas>
+            <div id="grafico" class="history-chart" role="img" aria-label="Gráfico de leituras de @Model.Parametro.Nome no período"
+                 data-chart="@System.Text.Json.JsonSerializer.Serialize(new {
+                     rotulos = Model.Labels,
+                     medias = Model.Medias,
+                     minimos = Model.Minimos,
+                     maximos = Model.Maximos,
+                     atencao = Model.Parametro.LimiteAtencao,
+                     critico = Model.Parametro.LimiteCritico,
+                     unidade = Model.Parametro.Unidade
+                 })"></div>
         </div>
     </div>
 
@@ -165,34 +174,6 @@ else
     </nav>
 
     @section Scripts {
-        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-        <script>
-            const labels = @Json.Serialize(Model.Labels);
-            const medias = @Json.Serialize(Model.Medias);
-            const minimos = @Json.Serialize(Model.Minimos);
-            const maximos = @Json.Serialize(Model.Maximos);
-            const atencao = @Model.Parametro.LimiteAtencao.ToString(System.Globalization.CultureInfo.InvariantCulture);
-            const critico = @Model.Parametro.LimiteCritico.ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-            new Chart(document.getElementById('grafico'), {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: 'Média (@Model.Parametro.Unidade)', data: medias, borderColor: '#0d6efd', pointRadius: 0, tension: 0.2 },
-                        { label: 'Mínimo', data: minimos, borderColor: 'rgba(25,135,84,.5)', pointRadius: 0, borderWidth: 1 },
-                        { label: 'Máximo', data: maximos, borderColor: 'rgba(108,117,125,.6)', pointRadius: 0, borderWidth: 1 },
-                        { label: 'Atenção', data: labels.map(() => atencao), borderColor: '#ffc107', borderDash: [6, 4], pointRadius: 0 },
-                        { label: 'Crítico', data: labels.map(() => critico), borderColor: '#dc3545', borderDash: [6, 4], pointRadius: 0 }
-                    ]
-                },
-                options: {
-                    animation: false,
-                    responsive: true,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: { y: { title: { display: true, text: '@Model.Parametro.Unidade' } } }
-                }
-            });
-        </script>
+        <script type="module" src="~/dist/historyChart.js" asp-append-version="true"></script>
     }
 }

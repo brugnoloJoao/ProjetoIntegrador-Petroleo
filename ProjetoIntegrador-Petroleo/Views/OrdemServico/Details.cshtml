@@ -26,8 +26,15 @@
         <div class="detail-title-line">
             <h1>@Model.Titulo</h1>
             <span class="badge @statusClass">@Model.Status</span>
+            @if (TempData["Sucesso"] != null)
+            {
+                @* Confirmação discreta da ação que acabou de ser feita. *@
+                <span class="os-done @(Model.Status == StatusOrdem.Rejeitada ? "is-rejected" : "")" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="@(Model.Status == StatusOrdem.Rejeitada ? "M8.5 8.5l7 7M15.5 8.5l-7 7" : "M7.5 12.5l3.2 3.2 6-6.6")" /></svg>
+                </span>
+            }
         </div>
-        <p class="page-subtitle">Aberta em @Model.DataAbertura.ToString("dd/MM/yyyy 'às' HH:mm")</p>
+        <p class="page-subtitle">Aberta em @Model.DataAbertura.HorarioDeBrasilia("dd/MM/yyyy 'às' HH:mm")</p>
     </div>
     <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ordens</a>
 </section>
@@ -54,6 +61,14 @@
         <span class="detail-summary-icon">♙</span>
         <div><span class="detail-summary-label">Operador responsável</span><strong>@(Model.Operador?.Email ?? "Ainda não atribuído")</strong></div>
     </article>
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">⚙</span>
+        <div><span class="detail-summary-label">Tipo de manutenção</span><strong>@(Model.TipoManutencao?.Nome() ?? "Não informado")</strong></div>
+    </article>
+    <article class="card detail-summary-card">
+        <span class="detail-summary-icon">↳</span>
+        <div><span class="detail-summary-label">Origem</span><strong>@((Model.Origem ?? (Model.AlertaId != null ? OrigemOrdem.Alerta : OrigemOrdem.Manual)).Nome())</strong></div>
+    </article>
 </div>
 
 <div class="detail-content-grid">
@@ -64,7 +79,18 @@
                 <h2>Descrição da intervenção</h2>
             </div>
         </div>
-        <p class="detail-description">@(string.IsNullOrWhiteSpace(Model.Descricao) ? "Nenhuma descrição informada." : Model.Descricao)</p>
+        <p class="detail-description os-description">@(string.IsNullOrWhiteSpace(Model.Descricao) ? "Nenhuma descrição informada." : Model.Descricao)</p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.PecasMateriais))
+        {
+            <div class="detail-origin-note">
+                <span class="detail-summary-icon">⚒</span>
+                <div>
+                    <span class="detail-summary-label">Peças e materiais</span>
+                    <strong>@Model.PecasMateriais</strong>
+                </div>
+            </div>
+        }
 
         @if (Model.Alerta != null)
         {
@@ -89,25 +115,69 @@
         <div class="detail-timeline">
             <div class="detail-timeline-item">
                 <span class="detail-timeline-dot"></span>
-                <div><strong>Solicitada por</strong><span>@Model.SolicitanteId</span><small>@Model.DataAbertura.ToString("dd/MM/yyyy HH:mm")</small></div>
+                <div><strong>Solicitada por</strong><span>@Model.SolicitanteId</span><small>@Model.DataAbertura.HorarioDeBrasilia()</small></div>
             </div>
             @if (Model.AprovadorId != null)
             {
                 <div class="detail-timeline-item">
                     <span class="detail-timeline-dot"></span>
-                    <div><strong>Analisada por</strong><span>@Model.AprovadorId</span><small>@Model.DataAprovacao?.ToString("dd/MM/yyyy HH:mm")</small></div>
+                    <div><strong>Analisada por</strong><span>@Model.AprovadorId</span><small>@Model.DataAprovacao?.HorarioDeBrasilia()</small></div>
                 </div>
             }
             @if (Model.DataEncerramento != null)
             {
                 <div class="detail-timeline-item">
                     <span class="detail-timeline-dot is-complete"></span>
-                    <div><strong>Encerrada</strong><small>@Model.DataEncerramento?.ToString("dd/MM/yyyy HH:mm")</small></div>
+                    <div><strong>Encerrada</strong><small>@Model.DataEncerramento?.HorarioDeBrasilia()</small></div>
                 </div>
             }
         </div>
     </section>
 </div>
+
+@if (Model.Itens.Count > 0)
+{
+    var podeMarcar = Model.Status == StatusOrdem.EmAndamento && (User.IsInRole("Operador") || User.IsInRole("Engenheiro"));
+    <section id="checklist" class="card detail-section-card os-checklist">
+        <div class="detail-section-heading">
+            <div>
+                <p class="eyebrow">EXECUÇÃO</p>
+                <h2>Checklist <span class="os-suggestion-count" data-contar>@Model.Itens.Count(i => i.Concluido)/@Model.Itens.Count</span></h2>
+                <p class="section-kicker">
+                    @(podeMarcar ? "Marque cada etapa conforme for concluída." : "As etapas podem ser marcadas enquanto a OS estiver em andamento.")
+                </p>
+            </div>
+        </div>
+        <ul>
+            @foreach (var item in Model.Itens)
+            {
+                <li class="@(item.Concluido ? "is-done" : "")">
+                    @if (podeMarcar)
+                    {
+                        <form asp-action="MarcarItem" method="post">
+                            <input type="hidden" name="id" value="@Model.Id" />
+                            <input type="hidden" name="itemId" value="@item.Id" />
+                            <input type="hidden" name="concluido" value="@(item.Concluido ? "false" : "true")" />
+                            <button type="submit" class="os-check" aria-pressed="@(item.Concluido ? "true" : "false")"
+                                    aria-label="@(item.Concluido ? "Desmarcar" : "Concluir"): @item.Descricao">@(item.Concluido ? "✓" : "")</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="os-check" aria-hidden="true">@(item.Concluido ? "✓" : "")</span>
+                    }
+                    <div>
+                        <span>@item.Descricao</span>
+                        @if (item.Concluido && item.ConcluidoEm != null)
+                        {
+                            <small>@item.ConcluidoPor · @item.ConcluidoEm.Value.HorarioDeBrasilia()</small>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    </section>
+}
 
 @if (User.IsInRole("Engenheiro") || User.IsInRole("Gestor"))
 {

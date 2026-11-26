@@ -19,7 +19,7 @@ public class SimuladorLeituras : BackgroundService
     // Guarda os picos em andamento:
     // parametroId -> (ciclos restantes, valor do pico)
     private readonly Dictionary<int, (int Restantes, double Nivel)> _picos = new();
-    private bool _falhaAnterior;
+    private readonly HashSet<int> _ativosEmFalha = new();
 
     public SimuladorLeituras(
         IServiceScopeFactory scopeFactory,
@@ -81,32 +81,37 @@ public class SimuladorLeituras : BackgroundService
 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var agora = DateTime.UtcNow;
-        var controles = _controles.Ler();
 
         var parametros = await db.Parametros
             .Include(p => p.Ativo)
             .Where(p => p.Ativo!.Status == StatusAtivo.Operando)
             .ToListAsync(ct);
-        var ativoControladoId = parametros
-            .OrderBy(p => p.AtivoId)
-            .Select(p => (int?)p.AtivoId)
-            .FirstOrDefault();
 
-        if (_falhaAnterior && !controles.FalhaSimulada && ativoControladoId is not null)
+        // Cada máquina tem sua própria velocidade e falha simulada.
+        var controlesPorAtivo = parametros
+            .Select(p => p.AtivoId)
+            .Distinct()
+            .ToDictionary(id => id, _controles.Ler);
+
+        // Ao encerrar a falha de uma máquina, descarta os picos pendentes dela.
+        foreach (var (ativoId, controle) in controlesPorAtivo)
         {
-            foreach (var parametroId in parametros.Where(p => p.AtivoId == ativoControladoId).Select(p => p.Id))
-                _picos.Remove(parametroId);
+            if (controle.FalhaSimulada)
+            {
+                _ativosEmFalha.Add(ativoId);
+            }
+            else if (_ativosEmFalha.Remove(ativoId))
+            {
+                foreach (var parametroId in parametros.Where(p => p.AtivoId == ativoId).Select(p => p.Id))
+                    _picos.Remove(parametroId);
+            }
         }
-        _falhaAnterior = controles.FalhaSimulada;
 
         var novas = new List<object>();
 
         foreach (var p in parametros)
         {
-            var controlesAtivo = p.AtivoId == ativoControladoId
-                ? controles
-                : new Maquina3DControleSnapshot(10.5, false);
-            var valor = GerarValor(p, controlesAtivo);
+            var valor = GerarValor(p, controlesPorAtivo[p.AtivoId]);
 
             await VerificarAnomaliaAsync(db, p, valor, agora, ct);
 
@@ -145,7 +150,7 @@ public class SimuladorLeituras : BackgroundService
     private double GerarValor(Parametro p, Maquina3DControleSnapshot controles)
     {
         var nomeParametro = p.Nome.ToLowerInvariant();
-        var proporcaoVelocidade = controles.Cadencia / 10.5;
+        var proporcaoVelocidade = controles.Cadencia / Maquina3DControleEstado.CadenciaNominal;
         var impactoVelocidade = nomeParametro.Contains("vaz")
             ? proporcaoVelocidade
             : nomeParametro.Contains("vibra")

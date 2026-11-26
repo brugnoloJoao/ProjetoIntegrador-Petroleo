@@ -1,0 +1,47 @@
+@model IReadOnlyList<ProjetoIntegrador_Petroleo.ViewModels.SugestaoOrdemVM>
+@using ProjetoIntegrador_Petroleo.Models
+
+<div class="detail-section-heading">
+    <div>
+        <p class="eyebrow">PRONTAS PARA CONFERÊNCIA</p>
+        <h2>Ordens sugeridas <span class="os-suggestion-count" data-contar>@Model.Count</span></h2>
+        <p class="section-kicker">Montadas a partir dos alertas e do cadastro de manutenção. Nada é aberto antes da sua confirmação.</p>
+    </div>
+</div>
+
+@if (Model.Count == 0)
+{
+    <p class="os-suggestion-empty">Nenhum alerta pendente nem rotina vencida no momento.</p>
+}
+else
+{
+    <div class="os-suggestion-grid">
+        @foreach (var s in Model)
+        {
+            <article class="os-suggestion @(s.Prioridade == Prioridade.Alta ? "is-high" : "")">
+                <div class="os-suggestion-top">
+                    <span class="badge @(s.AlertaId != null ? (s.Prioridade == Prioridade.Alta ? "bg-danger" : "bg-warning") : "bg-primary")">
+                        @(s.AlertaId == null ? "Preventiva" : s.Prioridade == Prioridade.Alta ? "⛔ Alerta crítico" : "⚠ Alerta de atenção")
+                    </span>
+                    <span class="asset-tag">@s.AtivoTag</span>
+                </div>
+                <strong>@s.Titulo</strong>
+                <span>@s.AtivoNome</span>
+                <small>@s.Detalhe</small>
+                @if (s.Situacao != null)
+                {
+                    <small class="os-suggestion-state">@s.Situacao</small>
+                }
+                @if (s.Rotinas.Count > 0)
+                {
+                    <small class="os-suggestion-routines">☑ @string.Join(" · ", s.Rotinas)</small>
+                }
+                <a class="btn btn-sm btn-primary" asp-controller="OrdemServico" asp-action="Create"
+                   asp-route-alertaId="@s.AlertaId" asp-route-ativoId="@(s.AlertaId == null ? s.AtivoId : null)" asp-route-rotinaId="@s.RotinaId">
+                    Conferir e confirmar
+                </a>
+                <a class="os-suggestion-history" asp-controller="Ocorrencias" asp-action="Index" asp-route-ativoId="@s.AtivoId">Ver o que aconteceu</a>
+            </article>
+        }
+    </div>
+}

@@ -13,11 +13,11 @@
 else
 {
     <div class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="ps-cartoes table table-hover align-middle">
             <thead>
                 <tr>
-                    <th>Equipamento</th>
-                    <th style="min-width:220px">Risco</th>
+                    <th data-titulo>Equipamento</th>
+                    <th style="min-width:220px" data-largo>Risco</th>
                     <th class="text-center">Alertas críticos</th>
                     <th class="text-center">Alertas de atenção</th>
                     <th class="text-center">Anomalias</th>
@@ -37,13 +37,13 @@ else
                                 <div class="progress flex-grow-1" style="height:10px">
                                     <div class="progress-bar bg-@cor" style="width:@(r.Pontos)%"></div>
                                 </div>
-                                <span class="badge bg-@cor @(cor == "warning" ? "text-dark" : "")">@icone @r.Nivel (@r.Pontos)</span>
+                                <span data-contar class="badge bg-@cor @(cor == "warning" ? "text-dark" : "")">@icone @r.Nivel (@r.Pontos)</span>
                             </div>
                         </td>
-                        <td class="text-center">@r.AlertasCriticos</td>
-                        <td class="text-center">@r.AlertasAtencao</td>
-                        <td class="text-center">@r.Anomalias</td>
-                        <td class="text-center">@(r.ProximidadePercentual > 0 ? r.ProximidadePercentual + "%" : "—")</td>
+                        <td class="text-center" data-contar>@r.AlertasCriticos</td>
+                        <td class="text-center" data-contar>@r.AlertasAtencao</td>
+                        <td class="text-center" data-contar>@r.Anomalias</td>
+                        <td class="text-center" data-contar>@(r.ProximidadePercentual > 0 ? r.ProximidadePercentual + "%" : "—")</td>
                         <td>
                             @if (User.IsInRole("Engenheiro") && r.Nivel != "Baixo")
                             {
