@@ -90,14 +90,13 @@ public class AlertasController : Controller
             .Select(a => a.Id)
             .ToListAsync();
 
-        // Críticos sem reconhecimento: em aberto, ou que normalizaram há pouco sem ninguém ver.
-        var recentes = DateTime.UtcNow.AddMinutes(-10);
-        var criticos = await consulta
-            .Where(a => a.Severidade == Severidade.Critico && a.ReconhecidoEm == null
-                && (a.Status == StatusAlerta.Ativo || a.DataHora >= recentes))
-            .OrderBy(a => a.Status)
-            .ThenByDescending(a => a.DataHora)
-            .Take(20)
+        // Críticos ativos (sem reconhecimento). Os totais são os mesmos das telas.
+        var consultaCriticos = consulta
+            .Where(a => a.Severidade == Severidade.Critico && a.Status == StatusAlerta.Ativo);
+        var totalCriticos = await consultaCriticos.CountAsync();
+        var criticos = await consultaCriticos
+            .OrderByDescending(a => a.DataHora)
+            .Take(200)
             .Select(a => new
             {
                 a.Id,
@@ -107,8 +106,7 @@ public class AlertasController : Controller
                 Parametro = a.Parametro.Nome,
                 a.Parametro.Unidade,
                 a.ValorMedido,
-                a.DataHora,
-                a.Status
+                a.DataHora
             })
             .ToListAsync();
 
@@ -117,6 +115,7 @@ public class AlertasController : Controller
         {
             ativos = idsAtivos.Count,
             idsAtivos,
+            totalCriticos,
             criticos = criticos.Select(a => new
             {
                 id = a.Id,
@@ -126,44 +125,45 @@ public class AlertasController : Controller
                 parametro = a.Parametro,
                 valor = $"{a.ValorMedido.ToString("0.##", cultura)} {a.Unidade}",
                 hora = a.DataHora.HorarioDeBrasilia("HH:mm:ss"),
-                desde = DateTime.SpecifyKind(a.DataHora, DateTimeKind.Utc),
-                normalizado = a.Status == StatusAlerta.Normalizado
+                desde = DateTime.SpecifyKind(a.DataHora, DateTimeKind.Utc)
             })
         });
     }
 
     [HttpGet]
     [Authorize(Roles = "Operador,Engenheiro")]
-    public async Task<IActionResult> Reconhecer(int id)
+    public async Task<IActionResult> Reconhecer(int id, string? voltar)
     {
         var alerta = await CarregarAsync(id);
         if (alerta == null) return NotFound();
 
         if (alerta.ReconhecidoEm != null)
         {
-            TempData["Aviso"] = $"Alerta já reconhecido por {alerta.ReconhecidoPorId} em {alerta.ReconhecidoEm:dd/MM/yyyy HH:mm}.";
-            return RedirectToAction(nameof(Index));
+            TempData["Aviso"] = AvisoJaReconhecido(alerta);
+            return Voltar(id, voltar);
         }
+        ViewData["Voltar"] = voltar;
         return View(alerta);
     }
 
 
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = "Operador,Engenheiro")]
-    public async Task<IActionResult> Reconhecer(int id, string observacao)
+    public async Task<IActionResult> Reconhecer(int id, string observacao, string? voltar)
     {
         var alerta = await CarregarAsync(id);
         if (alerta == null) return NotFound();
 
         if (alerta.ReconhecidoEm != null)
         {
-            TempData["Aviso"] = $"Alerta já reconhecido por {alerta.ReconhecidoPorId} em {alerta.ReconhecidoEm:dd/MM/yyyy HH:mm}.";
-            return RedirectToAction(nameof(Index));
+            TempData["Aviso"] = AvisoJaReconhecido(alerta);
+            return Voltar(id, voltar);
         }
 
         if (string.IsNullOrWhiteSpace(observacao))
         {
             ModelState.AddModelError("", "Informe uma observação.");
+            ViewData["Voltar"] = voltar;
             return View(alerta);
         }
 
@@ -184,8 +184,16 @@ public class AlertasController : Controller
         {
             TempData["Aviso"] = "Falha ao salvar. O alerta continua ativo, tente novamente.";
         }
-        return RedirectToAction(nameof(Index));
+        return Voltar(id, voltar);
     }
+
+    // Volta para a tela de onde o reconhecimento foi pedido.
+    private IActionResult Voltar(int id, string? voltar) => voltar == "detalhes"
+        ? RedirectToAction(nameof(Detalhes), new { id })
+        : RedirectToAction(nameof(Index));
+
+    private static string AvisoJaReconhecido(Alerta alerta) =>
+        $"Alerta já reconhecido por {alerta.ReconhecidoPorId} em {alerta.ReconhecidoEm!.Value.HorarioDeBrasilia()}.";
 
     private Task<Alerta?> CarregarAsync(int id) =>
         _db.Alertas

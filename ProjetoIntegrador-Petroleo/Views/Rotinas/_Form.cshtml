@@ -6,6 +6,8 @@
     var escopo = Context.Request.HasFormContentType
         ? Context.Request.Form["escopo"].ToString()
         : Model.AtivoId != null ? "ativo" : "tipo";
+    var gatilhos = (List<OpcaoGatilho>)ViewBag.Gatilhos;
+    var gatilhoAtual = GatilhoRotina.Localizar(gatilhos, Model.ParametroNome);
 }
 
 <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
@@ -36,8 +38,7 @@
 
         <div class="create-field" data-escopo="tipo" hidden="@(escopo != "tipo")">
             <label asp-for="TipoAtivo" class="form-label"></label>
-            <input asp-for="TipoAtivo" class="form-control" list="tipos-equipamento" placeholder="Ex.: Bomba centrífuga" />
-            <partial name="_TiposEquipamento" />
+            <partial name="_SelectTipo" model='("TipoAtivo", Model.TipoAtivo)' />
             <span asp-validation-for="TipoAtivo" class="field-validation"></span>
         </div>
 
@@ -58,15 +59,24 @@
 
     <div class="create-field">
         <label asp-for="ParametroNome" class="form-label"></label>
-        <input asp-for="ParametroNome" class="form-control" list="nomes-parametros" placeholder="Ex.: vibra" />
-        <datalist id="nomes-parametros">
-            @foreach (var nome in (List<string>)ViewBag.Parametros)
+        <select id="ParametroNome" name="ParametroNome" class="form-select">
+            <option value="">Não depende de alerta</option>
+            @foreach (var grupo in gatilhos.GroupBy(g => g.Grupo))
             {
-                <option value="@nome"></option>
+                <optgroup label="@grupo.Key">
+                    @foreach (var opcao in grupo)
+                    {
+                        <option value="@opcao.Valor" selected="@(opcao == gatilhoAtual)">@opcao.Texto</option>
+                    }
+                </optgroup>
             }
-        </datalist>
+        </select>
         <span asp-validation-for="ParametroNome" class="field-validation"></span>
-        <span class="create-field-hint">Quando um alerta ocorrer em um parâmetro com esse nome, a rotina vem marcada na OS. Deixe vazio se não depender de alerta.</span>
+        @if (gatilhoAtual == null && !string.IsNullOrWhiteSpace(Model.ParametroNome))
+        {
+            <span class="create-field-hint is-aviso">⚠ O valor atual, “@Model.ParametroNome”, não corresponde a um parâmetro cadastrado. Escolha um.</span>
+        }
+        <span class="create-field-hint">Quando houver um alerta no parâmetro escolhido, a rotina já vem marcada na OS.</span>
     </div>
 
     <div class="create-field">

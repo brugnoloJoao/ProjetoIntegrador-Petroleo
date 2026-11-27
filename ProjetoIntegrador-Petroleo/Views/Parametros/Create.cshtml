@@ -1,6 +1,10 @@
 @model ProjetoIntegrador_Petroleo.Models.Parametro
 
 @{
+    var voltarAtivo = ViewData["VoltarAtivo"] as int?;
+    var voltarUrl = voltarAtivo is { } idDoAtivo
+        ? Url.Action("Details", "Ativos", new { id = idDoAtivo })
+        : Url.Action("Index");
     ViewData["Title"] = "Novo parâmetro";
 }
 
@@ -10,7 +14,7 @@
         <h1>Novo parâmetro</h1>
         <p class="page-subtitle">Defina uma variável de monitoramento e seus limites de atenção.</p>
     </div>
-    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para parâmetros</a>
+    <a href="@voltarUrl" class="btn btn-outline-secondary">← Voltar para @(voltarAtivo == null ? "parâmetros" : "o ativo")</a>
 </section>
 
 <section class="create-card">
@@ -24,6 +28,7 @@
 
     <form asp-action="Create" method="post" class="create-form">
         <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
+        <input type="hidden" name="voltarAtivo" value="@voltarAtivo" />
 
         <div class="create-form-grid">
             <div class="create-field create-field-wide">
@@ -34,17 +39,7 @@
                 <span asp-validation-for="AtivoId" class="field-validation"></span>
             </div>
 
-            <div class="create-field">
-                <label asp-for="Nome" class="form-label">Nome do parâmetro</label>
-                <input asp-for="Nome" class="form-control" placeholder="Ex.: Temperatura" />
-                <span asp-validation-for="Nome" class="field-validation"></span>
-            </div>
-
-            <div class="create-field">
-                <label asp-for="Unidade" class="form-label"></label>
-                <input asp-for="Unidade" class="form-control" placeholder="Ex.: °C, bar, mm/s" />
-                <span asp-validation-for="Unidade" class="field-validation"></span>
-            </div>
+            <partial name="_CamposParametro" model="Model" />
 
             <div class="create-field">
                 <label asp-for="LimiteAtencao" class="form-label">Limite de atenção</label>
@@ -62,7 +57,7 @@
         </div>
 
         <div class="create-form-actions">
-            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <a href="@voltarUrl" class="btn btn-outline-secondary">Cancelar</a>
             <button type="submit" class="btn btn-primary">Salvar parâmetro <span aria-hidden="true">→</span></button>
         </div>
     </form>

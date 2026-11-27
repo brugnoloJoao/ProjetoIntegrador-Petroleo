@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Data;
+using ProjetoIntegrador_Petroleo.Hubs;
 using ProjetoIntegrador_Petroleo.Models;
 using ProjetoIntegrador_Petroleo.Services;
 using ProjetoIntegrador_Petroleo.ViewModels;
@@ -286,7 +288,7 @@ public class OrdemServicoController : Controller
     }
 
     // Quem abre a OS está atendendo o alerta: ele passa a "Reconhecido" e sai das
-    // notificações. A normalização continua sendo decidida pelas leituras.
+    // notificações. Só é encerrado quando a OS for concluída.
     private async Task ReconhecerAlertasAtendidosAsync(OrdemServico os)
     {
         var parametroId = await _db.Alertas.Where(a => a.Id == os.AlertaId)
@@ -403,7 +405,10 @@ public class OrdemServicoController : Controller
     // ---------- Encerrar ----------
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Roles = "Engenheiro")]
-    public async Task<IActionResult> Encerrar(int id)
+    public async Task<IActionResult> Encerrar(
+        int id,
+        [FromServices] Maquina3DControleEstado controles,
+        [FromServices] IHubContext<DashboardHub> hub)
     {
         var os = await _db.OrdensServico.Include(o => o.Ativo).FirstOrDefaultAsync(o => o.Id == id);
         if (os == null) return NotFound();
@@ -417,10 +422,44 @@ public class OrdemServicoController : Controller
         os.Status = StatusOrdem.Encerrada;
         os.DataEncerramento = DateTime.UtcNow;
         if (os.Ativo != null) os.Ativo.Status = StatusAtivo.Operando;
+        var corrigidos = await CorrigirDefeitosAsync(os);
         await _db.SaveChangesAsync();
 
-        TempData["Sucesso"] = "OS encerrada. O equipamento voltou a operar.";
+        // O conserto também encerra a falha forçada e devolve a velocidade normal.
+        var estado = controles.Atualizar(os.AtivoId, Maquina3DControleEstado.CadenciaNominal, false);
+        await hub.Clients.All.SendAsync("EstadoMaquina3DAlterado",
+            new { ativoId = os.AtivoId, cadencia = estado.Cadencia, falhaSimulada = estado.FalhaSimulada });
+
+        TempData["Sucesso"] = "OS encerrada. O equipamento voltou a operar."
+            + (corrigidos == 0 ? "" : corrigidos == 1 ? " 1 alerta corrigido." : $" {corrigidos} alertas corrigidos.");
         return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // A OS aberta por um alerta conserta o parâmetro dele; sem alerta, conserta a máquina toda.
+    private async Task<int> CorrigirDefeitosAsync(OrdemServico os)
+    {
+        var abertos = _db.Alertas.Where(a => a.Status != StatusAlerta.Normalizado);
+        if (os.AlertaId is { } alertaId)
+        {
+            var parametroId = await _db.Alertas.Where(a => a.Id == alertaId)
+                .Select(a => a.ParametroId)
+                .FirstAsync();
+            abertos = abertos.Where(a => a.ParametroId == parametroId);
+        }
+        else
+        {
+            abertos = abertos.Where(a => a.Parametro!.AtivoId == os.AtivoId);
+        }
+
+        var lista = await abertos.ToListAsync();
+        foreach (var alerta in lista)
+        {
+            alerta.Status = StatusAlerta.Normalizado;
+            if (string.IsNullOrWhiteSpace(alerta.Observacao))
+                alerta.Observacao = $"Corrigido pela ordem de serviço #{os.Id}.";
+        }
+
+        return lista.Count;
     }
 
     private async Task CarregarOperadoresAsync(string? selecionado)

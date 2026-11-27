@@ -1,6 +1,8 @@
 @model ProjetoIntegrador_Petroleo.Models.Ativo
 
 @{
+    var voltar = ViewData["Voltar"] as string;
+    var voltarUrl = voltar == "detalhes" ? Url.Action("Details", new { id = Model.Id }) : Url.Action("Index");
     ViewData["Title"] = "Editar ativo";
 }
 
@@ -10,7 +12,7 @@
         <h1>Editar ativo</h1>
         <p class="page-subtitle">Atualize os dados e a disponibilidade deste equipamento.</p>
     </div>
-    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ativos</a>
+    <a href="@voltarUrl" class="btn btn-outline-secondary">← Voltar para @(voltar == "detalhes" ? "o ativo" : "ativos")</a>
 </section>
 
 <section class="create-card">
@@ -25,6 +27,7 @@
     <form asp-action="Edit" method="post" class="create-form">
         <div asp-validation-summary="ModelOnly" class="validation-summary"></div>
         <input type="hidden" asp-for="Id" />
+        <input type="hidden" name="voltar" value="@voltar" />
 
         <div class="create-form-grid">
             <div class="create-field">
@@ -41,9 +44,8 @@
 
             <div class="create-field">
                 <label asp-for="Tipo" class="form-label">Tipo de equipamento</label>
-                <input asp-for="Tipo" class="form-control" list="tipos-equipamento" />
-                <span class="create-field-hint">Escolha um tipo da lista para a máquina ter o modelo 3D correspondente.</span>
-                <partial name="_TiposEquipamento" />
+                <partial name="_SelectTipo" model='("Tipo", Model.Tipo)' />
+                <span class="create-field-hint">O tipo define o modelo 3D da máquina.</span>
                 <span asp-validation-for="Tipo" class="field-validation"></span>
             </div>
 
@@ -55,7 +57,7 @@
         </div>
 
         <div class="create-form-actions">
-            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <a href="@voltarUrl" class="btn btn-outline-secondary">Cancelar</a>
             <button type="submit" class="btn btn-primary">Salvar alterações <span aria-hidden="true">→</span></button>
         </div>
     </form>

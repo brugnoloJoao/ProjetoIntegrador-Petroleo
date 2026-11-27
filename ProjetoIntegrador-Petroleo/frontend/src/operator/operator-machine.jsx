@@ -4,6 +4,7 @@ import * as signalR from '@microsoft/signalr';
 import Maquina3D from './Maquina3D.jsx';
 import { chaveDoModelo, carregarModelo } from './modelos/catalogo.js';
 import { situacaoDaLeitura } from './leituras.js';
+import AvisoFalha from './AvisoFalha.jsx';
 
 const container = document.getElementById('operator-machine-app');
 const INTERVALO_ATUALIZACAO = 15000;
@@ -22,7 +23,16 @@ if (container) {
     controles: container.dataset.urlControles || '/Maquina3D/AtualizarControles',
     novaOs: container.dataset.urlNovaOs || '/OrdemServico/Create',
     ocorrencias: container.dataset.urlOcorrencias || '/Ocorrencias',
+    ordem: container.dataset.urlOrdem || '/OrdemServico/Details',
+    ativar: container.dataset.urlAtivar || '/Simulador/Ativar',
   };
+  const enviar = (url) => fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+    body: new URLSearchParams({
+      __RequestVerificationToken: document.querySelector('#operator-machine-token input[name="__RequestVerificationToken"]')?.value || '',
+    }),
+  });
 
   // Mantém a leitura mais recente de cada parâmetro e origem (real ou simulada).
   function mesclarLeituras(atuais, novas) {
@@ -47,6 +57,8 @@ if (container) {
     const [erroTroca, setErroTroca] = useState('');
     const [carregado, setCarregado] = useState({ chave: null, modelo: null });
     const [sala, setSala] = useState(false);
+    const [aviso, setAviso] = useState(null); // 'pausada' | 'sem-parametros'
+    const [ativando, setAtivando] = useState(false);
 
     const ativoId = dados.ativo?.id ?? null;
     // Equipamento escolhido pelo usuário, mesmo antes de a resposta chegar.
@@ -181,6 +193,8 @@ if (container) {
       hub.on('EstadoMaquina3DAlterado', (estado) => {
         if (estado?.ativoId === selecionadoRef.current) {
           setControles({ cadencia: estado.cadencia, falhaSimulada: estado.falhaSimulada });
+          // Atualiza alertas e OS depois da próxima leitura.
+          window.setTimeout(() => carregarDados(selecionadoRef.current, { comLeituras: false }), 7000);
         }
       });
       hub.onreconnecting(() => setConectado(false));
@@ -200,20 +214,14 @@ if (container) {
       setControles(proximos);
       setErroControle('');
 
-      const token = document.querySelector('#operator-machine-token input[name="__RequestVerificationToken"]')?.value;
       const query = new URLSearchParams({
         ativoId: String(ativoId),
         cadencia: String(proximos.cadencia),
         falhaSimulada: String(proximos.falhaSimulada),
       });
-      const corpo = new URLSearchParams({ __RequestVerificationToken: token || '' });
 
       try {
-        const resposta = await fetch(`${urls.controles}?${query}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-          body: corpo,
-        });
+        const resposta = await enviar(`${urls.controles}?${query}`);
         const retorno = await resposta.json();
         if (!resposta.ok) throw new Error(retorno.mensagem || 'Não foi possível atualizar os controles.');
         if (retorno.ativoId === selecionadoRef.current) {
@@ -223,6 +231,32 @@ if (container) {
         if (ativoId !== selecionadoRef.current) return;
         setControles(anteriores);
         setErroControle(error.message || 'Falha ao comunicar com o simulador.');
+      }
+    }
+
+    const semParametros = !(dados.parametros || []).length;
+
+    const forcarFalha = () => {
+      setErroControle('');
+      if (semParametros) setAviso('sem-parametros');
+      else if (!simulacaoAtiva) setAviso('pausada');
+      else atualizarControles({ falhaSimulada: true });
+    };
+
+    // Liga a simulação e já força a falha. A página recarrega para o menu mostrar o novo estado.
+    async function ativarEForcar() {
+      setAtivando(true);
+      try {
+        const ligou = await enviar(urls.ativar);
+        if (!ligou.ok || ligou.redirected) throw new Error();
+        const query = new URLSearchParams({ ativoId: String(ativoId), cadencia: String(controles.cadencia), falhaSimulada: 'true' });
+        const forcou = await enviar(`${urls.controles}?${query}`);
+        if (!forcou.ok) throw new Error();
+        window.location.reload();
+      } catch {
+        setAtivando(false);
+        setAviso(null);
+        setErroControle('Não foi possível ativar a simulação. Tente pelo menu lateral.');
       }
     }
 
@@ -311,7 +345,24 @@ if (container) {
           origemLeituras={origemLeituras}
           falhaSimulada={controles.falhaSimulada || possuiFalhaCritica || (simulacaoAtiva && Boolean(dados.falhaSimulada))}
           movimentoAtivo={operando}
+          onForcarFalha={forcarFalha}
+          alertasAbertos={dados.alertasAbertos || 0}
+          conserto={dados.ordemAberta
+            ? { href: `${urls.ordem}/${dados.ordemAberta.id}`, texto: `Ver OS #${dados.ordemAberta.id} · ${dados.ordemAberta.status}` }
+            : dados.sugestao
+              ? { href: `${urls.novaOs}?alertaId=${dados.sugestao.alertaId}`, texto: 'Abrir ordem de serviço' }
+              : null}
         />
+        {aviso && (
+          <AvisoFalha
+            tipo={aviso}
+            podeAtivar={Boolean(dados.podeAtivarSimulacao)}
+            ocupado={ativando}
+            urlParametros={ativoId == null ? null : `/Ativos/Details/${ativoId}`}
+            onConfirmar={ativarEForcar}
+            onFechar={() => setAviso(null)}
+          />
+        )}
       </div>
     );
   }

@@ -1,13 +1,27 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using ProjetoIntegrador_Petroleo.Data;
 using ProjetoIntegrador_Petroleo.Hubs;
 using ProjetoIntegrador_Petroleo.Services;
 using Microsoft.AspNetCore.Identity;
 
+// O servidor na nuvem não tem idioma configurado: fixa o português para números e datas.
+var portugues = CultureInfo.GetCultureInfo("pt-BR");
+CultureInfo.DefaultThreadCurrentCulture = portugues;
+CultureInfo.DefaultThreadCurrentUICulture = portugues;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    var mensagens = options.ModelBindingMessageProvider;
+    mensagens.SetValueMustNotBeNullAccessor(_ => "Preencha este campo.");
+    mensagens.SetValueIsInvalidAccessor(valor => $"Valor inválido: {valor}");
+    mensagens.SetAttemptedValueIsInvalidAccessor((valor, _) => $"Valor inválido: {valor}");
+    mensagens.SetNonPropertyAttemptedValueIsInvalidAccessor(valor => $"Valor inválido: {valor}");
+    mensagens.SetValueMustBeANumberAccessor(_ => "Informe um número.");
+});
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(

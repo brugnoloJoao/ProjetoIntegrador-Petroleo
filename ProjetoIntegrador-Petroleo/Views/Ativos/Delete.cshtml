@@ -1,58 +1,51 @@
 @model ProjetoIntegrador_Petroleo.Models.Ativo
 
 @{
-    ViewData["Title"] = "Delete";
+    ViewData["Title"] = "Excluir ativo";
+    var parametros = Model.Parametros.Count;
+    var alertas = ViewData["Alertas"] as int? ?? 0;
+    var ordens = ViewData["Ordens"] as int? ?? 0;
+    var rotinas = ViewData["Rotinas"] as int? ?? 0;
 }
 
-<h1>Delete</h1>
+<section class="page-heading">
+    <div>
+        <p class="eyebrow">INVENTÁRIO OPERACIONAL</p>
+        <h1>Excluir ativo</h1>
+        <p class="page-subtitle">Confira o equipamento antes de apagar.</p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para ativos</a>
+</section>
 
-<h3>Are you sure you want to delete this?</h3>
-<div>
-    <h4>ProjetoIntegrador_Petroleo.Models.Ativo</h4>
-    <hr />
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Nome)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Nome)
-        </dd>
+<section class="create-card create-card-compact delete-card">
+    <div class="create-card-heading">
+        <span class="create-card-icon" aria-hidden="true">◈</span>
+        <div>
+            <h2>@Model.Nome</h2>
+            <p><span class="asset-tag">@Model.Tag</span></p>
+        </div>
+    </div>
+
+    <dl class="delete-facts">
+        <div><dt>Tipo</dt><dd>@(string.IsNullOrWhiteSpace(Model.Tipo) ? "Não informado" : Model.Tipo)</dd></div>
+        <div><dt>Status</dt><dd>@(Model.Status == StatusAtivo.EmManutencao ? "Em manutenção" : Model.Status.ToString())</dd></div>
     </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Tag)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Tag)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Tipo)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Tipo)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Status)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Status)
-        </dd>
-    </dl>
-    <dl class="row">
-        <dt class = "col-sm-2">
-            @Html.DisplayNameFor(model => model.Parametros)
-        </dt>
-        <dd class = "col-sm-10">
-            @Html.DisplayFor(model => model.Parametros)
-        </dd>
-    </dl>
-    <form asp-action="Delete">
-        <input type="hidden" asp-for="Id" />
-        <input type="submit" value="Delete" class="btn btn-danger" /> |
-        <a asp-action="Index">Back to List</a>
+
+    <div class="delete-warning" role="alert">
+        <strong>⚠ Esta ação não pode ser desfeita.</strong>
+        <p>Também serão apagados:</p>
+        <ul>
+            <li><b>@parametros</b> @(parametros == 1 ? "parâmetro" : "parâmetros"), com as leituras e anomalias</li>
+            <li><b>@alertas</b> @(alertas == 1 ? "alerta" : "alertas")</li>
+            <li><b>@ordens</b> @(ordens == 1 ? "ordem de serviço" : "ordens de serviço")</li>
+            <li><b>@rotinas</b> @(rotinas == 1 ? "rotina" : "rotinas") só deste equipamento</li>
+        </ul>
+    </div>
+
+    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+        <div class="create-form-actions">
+            <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-danger">Excluir ativo</button>
+        </div>
     </form>
-</div>
+</section>

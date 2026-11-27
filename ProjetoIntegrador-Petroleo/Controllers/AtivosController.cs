@@ -61,6 +61,7 @@ public class AtivosController : Controller
     [Authorize(Roles = "Engenheiro,Gestor")]
     public async Task<IActionResult> Create([Bind("Id,Nome,Tag,Tipo,Status")] Ativo ativo)
     {
+        ValidarTipo(ativo);
         if (ModelState.IsValid)
         {
             _context.Add(ativo);
@@ -72,7 +73,7 @@ public class AtivosController : Controller
 
     // GET: ATIVOS/Edit/5
     [Authorize(Roles = "Engenheiro,Gestor")]
-    public async Task<IActionResult> Edit(int? id)
+    public async Task<IActionResult> Edit(int? id, string? voltar)
     {
         if (id == null)
         {
@@ -84,6 +85,7 @@ public class AtivosController : Controller
         {
             return NotFound();
         }
+        ViewData["Voltar"] = voltar;
         return View(ativo);
     }
 
@@ -93,12 +95,14 @@ public class AtivosController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Roles = "Engenheiro,Gestor")]
-    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nome,Tag,Tipo,Status")] Ativo ativo)
+    public async Task<IActionResult> Edit(int? id, [Bind("Id,Nome,Tag,Tipo,Status")] Ativo ativo, string? voltar)
     {
         if (id != ativo.Id)
         {
             return NotFound();
         }
+
+        ValidarTipo(ativo);
 
         if (ModelState.IsValid)
         {
@@ -118,8 +122,11 @@ public class AtivosController : Controller
                     throw;
                 }
             }
-            return RedirectToAction(nameof(Index));
+            return voltar == "detalhes"
+                ? RedirectToAction(nameof(Details), new { id = ativo.Id })
+                : RedirectToAction(nameof(Index));
         }
+        ViewData["Voltar"] = voltar;
         return View(ativo);
     }
 
@@ -132,13 +139,18 @@ public class AtivosController : Controller
             return NotFound();
         }
 
-        var ativo = await _context.Ativos
+        var ativo = await _context.Ativos.AsNoTracking()
+            .Include(a => a.Parametros)
             .FirstOrDefaultAsync(m => m.Id == id);
         if (ativo == null)
         {
             return NotFound();
         }
 
+        // O que vai junto na exclusão, para a pessoa decidir sabendo.
+        ViewData["Alertas"] = await _context.Alertas.CountAsync(a => a.Parametro!.AtivoId == id);
+        ViewData["Ordens"] = await _context.OrdensServico.CountAsync(o => o.AtivoId == id);
+        ViewData["Rotinas"] = await _context.RotinasManutencao.CountAsync(r => r.AtivoId == id);
         return View(ativo);
     }
 
@@ -156,6 +168,16 @@ public class AtivosController : Controller
 
         await _context.SaveChangesAsync();
         return RedirectToAction(nameof(Index));
+    }
+
+    // Só os tipos da lista, para a máquina ter o modelo 3D certo.
+    private void ValidarTipo(Ativo ativo)
+    {
+        if (string.IsNullOrWhiteSpace(ativo.Tipo)) return; // a mensagem de campo obrigatório já aparece
+        var tipo = TiposEquipamento.Todos
+            .FirstOrDefault(t => TiposEquipamento.Normalizar(t) == TiposEquipamento.Normalizar(ativo.Tipo));
+        if (tipo is null) ModelState.AddModelError(nameof(ativo.Tipo), "Escolha um tipo da lista.");
+        else ativo.Tipo = tipo;
     }
 
     private bool AtivoExists(int? id)

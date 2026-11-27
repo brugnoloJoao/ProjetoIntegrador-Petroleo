@@ -25,7 +25,7 @@
         <a asp-controller="Maquina3D" asp-action="Index" asp-route-ativoId="@Model.Id" class="btn btn-outline-primary">Ver em 3D</a>
         <a asp-controller="Ocorrencias" asp-action="Index" asp-route-ativoId="@Model.Id" class="btn btn-outline-primary">Ocorrências</a>
         <a asp-controller="Rotinas" asp-action="Index" asp-route-ativoId="@Model.Id" class="btn btn-outline-primary">Rotinas de manutenção</a>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">Editar ativo</a>
+        <a asp-action="Edit" asp-route-id="@Model.Id" asp-route-voltar="detalhes" class="btn btn-primary">Editar ativo</a>
     </div>
 </section>
 
@@ -51,7 +51,7 @@
             <h2>Parâmetros deste ativo</h2>
             <p class="section-kicker">Limites usados para acompanhar as condições do equipamento.</p>
         </div>
-        <a asp-controller="Parametros" asp-action="Create" class="btn btn-outline-primary">＋ Novo parâmetro</a>
+        <a asp-controller="Parametros" asp-action="Create" asp-route-voltarAtivo="@Model.Id" class="btn btn-outline-primary">＋ Novo parâmetro</a>
     </div>
 
     @if (Model.Parametros.Count == 0)
@@ -60,7 +60,7 @@
             <div class="empty-state-icon">⌁</div>
             <h3 class="section-title">Nenhum parâmetro configurado</h3>
             <p>Cadastre parâmetros para acompanhar as leituras deste equipamento.</p>
-            <a asp-controller="Parametros" asp-action="Create" class="btn btn-primary">Cadastrar parâmetro</a>
+            <a asp-controller="Parametros" asp-action="Create" asp-route-voltarAtivo="@Model.Id" class="btn btn-primary">Cadastrar parâmetro</a>
         </div>
     }
     else
@@ -78,7 +78,7 @@
                             <td>@(string.IsNullOrWhiteSpace(parametro.Unidade) ? "—" : parametro.Unidade)</td>
                             <td><span class="badge bg-warning">@parametro.LimiteAtencao.ToString("0.##") @parametro.Unidade</span></td>
                             <td><span class="badge bg-danger">@parametro.LimiteCritico.ToString("0.##") @parametro.Unidade</span></td>
-                            <td class="text-end"><a asp-controller="Parametros" asp-action="Edit" asp-route-id="@parametro.Id" class="btn btn-sm btn-outline-primary">Editar</a></td>
+                            <td class="text-end"><a asp-controller="Parametros" asp-action="Edit" asp-route-id="@parametro.Id" asp-route-voltarAtivo="@Model.Id" class="btn btn-sm btn-outline-primary">Editar</a></td>
                         </tr>
                     }
                 </tbody>

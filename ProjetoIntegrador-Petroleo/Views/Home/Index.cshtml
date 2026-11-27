@@ -8,6 +8,8 @@
 <div id="dashboard-app"></div>
 <script>
     window.petroSyncDashboard = @Html.Raw(Json.Serialize(new {
+        autenticado = User.Identity?.IsAuthenticated == true,
+        loginUrl = "/Identity/Account/Login",
         indicatorsUrl = Url.Action("Indicadores", "Home"),
         historyUrl = Url.Action("Historico", "Home"),
         exportUrl = User.Identity?.IsAuthenticated == true ? Url.Action("ExportarRelatorio", "Home") : null,

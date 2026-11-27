@@ -137,20 +137,42 @@
 
 @if (Model.Itens.Count > 0)
 {
-    var podeMarcar = Model.Status == StatusOrdem.EmAndamento && (User.IsInRole("Operador") || User.IsInRole("Engenheiro"));
-    <section id="checklist" class="card detail-section-card os-checklist">
+    // Marca quem executa: o operador responsável (que só enxerga as próprias OS) e o engenheiro.
+    // O gestor aprova a ordem e acompanha, sem marcar.
+    var executa = User.IsInRole("Operador") || User.IsInRole("Engenheiro");
+    var podeMarcar = Model.Status == StatusOrdem.EmAndamento && executa;
+    var podeIniciar = Model.Status == StatusOrdem.Aprovada && User.IsInRole("Engenheiro");
+    var situacao = Model.Status switch
+    {
+        StatusOrdem.Aberta => "Bloqueado: falta o gestor aprovar a OS.",
+        StatusOrdem.Aprovada when podeIniciar => "Bloqueado: inicie a manutenção para liberar as etapas.",
+        StatusOrdem.Aprovada => "Bloqueado: falta o engenheiro iniciar a manutenção.",
+        StatusOrdem.EmAndamento when executa => "Clique em cada etapa conforme for concluída.",
+        StatusOrdem.EmAndamento => "Somente leitura: quem marca é o operador responsável ou o engenheiro.",
+        StatusOrdem.Encerrada => "OS encerrada. O checklist ficou registrado.",
+        _ => "OS rejeitada. O checklist não será executado."
+    };
+    <section id="checklist" class="card detail-section-card os-checklist @(podeMarcar ? "" : "is-locked")">
         <div class="detail-section-heading">
             <div>
                 <p class="eyebrow">EXECUÇÃO</p>
-                <h2>Checklist <span class="os-suggestion-count" data-contar>@Model.Itens.Count(i => i.Concluido)/@Model.Itens.Count</span></h2>
-                <p class="section-kicker">
-                    @(podeMarcar ? "Marque cada etapa conforme for concluída." : "As etapas podem ser marcadas enquanto a OS estiver em andamento.")
-                </p>
+                <h2>Checklist <span class="os-suggestion-count">@Model.Itens.Count(i => i.Concluido)/@Model.Itens.Count</span></h2>
+                <p class="section-kicker">@situacao</p>
             </div>
+            @if (podeIniciar)
+            {
+                <form asp-action="Iniciar" method="post">
+                    <input type="hidden" name="id" value="@Model.Id" />
+                    <button class="btn btn-primary">Iniciar manutenção</button>
+                </form>
+            }
         </div>
         <ul>
             @foreach (var item in Model.Itens)
             {
+                var registro = item.Concluido && item.ConcluidoEm != null
+                    ? $"{item.ConcluidoPor} · {item.ConcluidoEm.Value.HorarioDeBrasilia()}"
+                    : null;
                 <li class="@(item.Concluido ? "is-done" : "")">
                     @if (podeMarcar)
                     {
@@ -158,21 +180,31 @@
                             <input type="hidden" name="id" value="@Model.Id" />
                             <input type="hidden" name="itemId" value="@item.Id" />
                             <input type="hidden" name="concluido" value="@(item.Concluido ? "false" : "true")" />
-                            <button type="submit" class="os-check" aria-pressed="@(item.Concluido ? "true" : "false")"
-                                    aria-label="@(item.Concluido ? "Desmarcar" : "Concluir"): @item.Descricao">@(item.Concluido ? "✓" : "")</button>
+                            <button type="submit" class="os-item" aria-pressed="@(item.Concluido ? "true" : "false")">
+                                <span class="os-check" aria-hidden="true">@(item.Concluido ? "✓" : "")</span>
+                                <span class="os-item-text">
+                                    <span>@item.Descricao</span>
+                                    @if (registro != null)
+                                    {
+                                        <small>@registro</small>
+                                    }
+                                </span>
+                            </button>
                         </form>
                     }
                     else
                     {
-                        <span class="os-check" aria-hidden="true">@(item.Concluido ? "✓" : "")</span>
+                        <div class="os-item">
+                            <span class="os-check" aria-hidden="true">@(item.Concluido ? "✓" : "")</span>
+                            <span class="os-item-text">
+                                <span>@item.Descricao</span>
+                                @if (registro != null)
+                                {
+                                    <small>@registro</small>
+                                }
+                            </span>
+                        </div>
                     }
-                    <div>
-                        <span>@item.Descricao</span>
-                        @if (item.Concluido && item.ConcluidoEm != null)
-                        {
-                            <small>@item.ConcluidoPor · @item.ConcluidoEm.Value.HorarioDeBrasilia()</small>
-                        }
-                    </div>
                 </li>
             }
         </ul>

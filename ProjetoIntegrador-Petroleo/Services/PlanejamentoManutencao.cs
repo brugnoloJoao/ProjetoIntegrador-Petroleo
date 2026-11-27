@@ -45,20 +45,26 @@ public sealed class PlanejamentoManutencao(AppDbContext db, SimuladorEstado simu
     // parâmetro enquanto está aberta e, depois, tudo o que normalizou até ela terminar.
     public IQueryable<Alerta> AlertasSemOrdem() =>
         db.Alertas.AsNoTracking().Where(a => !db.OrdensServico.Any(o =>
-            o.AlertaId != null && o.Alerta!.ParametroId == a.ParametroId
-            && ((o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada)
-                || (a.Status == StatusAlerta.Normalizado
-                    && (o.DataAbertura >= a.DataHora || o.DataEncerramento >= a.DataHora)))));
+            (o.AlertaId != null && o.Alerta!.ParametroId == a.ParametroId
+                && ((o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada)
+                    || (a.Status == StatusAlerta.Normalizado
+                        && (o.DataAbertura >= a.DataHora || o.DataEncerramento >= a.DataHora))))
+            || (o.AlertaId == null && o.Status == StatusOrdem.Encerrada
+                && o.AtivoId == a.Parametro!.AtivoId
+                && a.Status == StatusAlerta.Normalizado && o.DataEncerramento >= a.DataHora)));
 
     // Mesma regra, para um alerta: a OS ligada a ele tem preferência.
     public Task<OrdemServico?> OrdemQueCobreAsync(Alerta alerta)
     {
         var normalizado = alerta.Status == StatusAlerta.Normalizado;
         return db.OrdensServico.AsNoTracking()
-            .Where(o => o.AlertaId != null && o.Alerta!.ParametroId == alerta.ParametroId
-                && ((o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada)
-                    || (normalizado
-                        && (o.DataAbertura >= alerta.DataHora || o.DataEncerramento >= alerta.DataHora))))
+            .Where(o => (o.AlertaId != null && o.Alerta!.ParametroId == alerta.ParametroId
+                    && ((o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada)
+                        || (normalizado
+                            && (o.DataAbertura >= alerta.DataHora || o.DataEncerramento >= alerta.DataHora))))
+                || (normalizado && o.AlertaId == null && o.Status == StatusOrdem.Encerrada
+                    && o.DataEncerramento >= alerta.DataHora
+                    && db.Parametros.Any(p => p.Id == alerta.ParametroId && p.AtivoId == o.AtivoId)))
             .OrderByDescending(o => o.AlertaId == alerta.Id)
             .ThenBy(o => o.DataAbertura)
             .FirstOrDefaultAsync();

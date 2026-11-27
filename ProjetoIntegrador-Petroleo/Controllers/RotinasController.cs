@@ -45,6 +45,7 @@ public sealed class RotinasController(AppDbContext db) : Controller
     public async Task<IActionResult> Create([Bind(CamposDoFormulario)] RotinaManutencao rotina, string? escopo)
     {
         await ValidarAlvoAsync(rotina, escopo);
+        await ValidarGatilhoAsync(rotina);
         if (!ModelState.IsValid)
         {
             await CarregarListasAsync(rotina);
@@ -89,6 +90,7 @@ public sealed class RotinasController(AppDbContext db) : Controller
             await ValidarAlvoAsync(dados, escopo);
         }
 
+        await ValidarGatilhoAsync(dados);
         dados.Id = id;
         if (!ModelState.IsValid)
         {
@@ -147,13 +149,33 @@ public sealed class RotinasController(AppDbContext db) : Controller
         {
             rotina.AtivoId = null;
             ModelState.Remove(nameof(rotina.AtivoId));
-            if (string.IsNullOrWhiteSpace(rotina.TipoAtivo))
-                ModelState.AddModelError(nameof(rotina.TipoAtivo), "Informe o tipo de equipamento.");
+            var tipo = TiposEquipamento.Todos
+                .FirstOrDefault(t => TiposEquipamento.Normalizar(t) == TiposEquipamento.Normalizar(rotina.TipoAtivo));
+            if (tipo is null)
+                ModelState.AddModelError(nameof(rotina.TipoAtivo), "Escolha o tipo de equipamento.");
+            else
+                rotina.TipoAtivo = tipo;
         }
 
         if (!Enum.IsDefined(rotina.TipoManutencao))
             ModelState.AddModelError(nameof(rotina.TipoManutencao), "Escolha o tipo de manutenção.");
     }
+
+    // O parâmetro que aciona a rotina precisa ser um dos que existem no sistema.
+    private async Task ValidarGatilhoAsync(RotinaManutencao rotina)
+    {
+        if (string.IsNullOrWhiteSpace(rotina.ParametroNome))
+            return;
+
+        var opcao = GatilhoRotina.Localizar(await GatilhosAsync(), rotina.ParametroNome);
+        if (opcao is null)
+            ModelState.AddModelError(nameof(rotina.ParametroNome), "Escolha um parâmetro da lista.");
+        else
+            rotina.ParametroNome = opcao.Valor;
+    }
+
+    private async Task<List<OpcaoGatilho>> GatilhosAsync() =>
+        GatilhoRotina.Opcoes(await db.Parametros.AsNoTracking().Select(p => p.Nome).ToListAsync());
 
     private static void Normalizar(RotinaManutencao rotina)
     {
@@ -171,8 +193,7 @@ public sealed class RotinasController(AppDbContext db) : Controller
         var ativos = await db.Ativos.AsNoTracking().OrderBy(a => a.Nome).ToListAsync();
         ViewBag.Ativos = new SelectList(
             ativos.Select(a => new { a.Id, Nome = $"{a.Nome} · {a.Tag}" }), "Id", "Nome", rotina.AtivoId);
-        ViewBag.Parametros = await db.Parametros.AsNoTracking()
-            .Select(p => p.Nome).Distinct().OrderBy(n => n).ToListAsync();
+        ViewBag.Gatilhos = await GatilhosAsync();
         ViewData["Bloqueada"] = rotina.Id != 0 && await JaUsadaAsync(rotina.Id);
     }
 }

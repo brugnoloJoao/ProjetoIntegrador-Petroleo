@@ -75,6 +75,11 @@
         <p class="alert-note">☑ Rotinas indicadas pelo cadastro: @string.Join(" · ", Model.Rotinas.Select(r => r.Titulo))</p>
     }
 
+    @if (alerta.Status != StatusAlerta.Normalizado)
+    {
+        <p class="alert-note">⚠ A máquina só volta ao normal quando a ordem de serviço deste alerta for encerrada.</p>
+    }
+
     <div class="alert-actions">
         @if (Model.Ordem == null)
         {
@@ -90,7 +95,7 @@
         }
         @if (alerta.ReconhecidoEm == null && (User.IsInRole("Operador") || User.IsInRole("Engenheiro")))
         {
-            <a class="btn btn-outline-primary" asp-action="Reconhecer" asp-route-id="@alerta.Id">Reconhecer</a>
+            <a class="btn btn-outline-primary" asp-action="Reconhecer" asp-route-id="@alerta.Id" asp-route-voltar="detalhes">Reconhecer</a>
         }
     </div>
 </section>

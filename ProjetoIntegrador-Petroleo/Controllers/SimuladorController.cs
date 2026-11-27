@@ -9,6 +9,15 @@ namespace ProjetoIntegrador_Petroleo.Controllers;
 [Authorize(Roles = "Engenheiro,Gestor")]
 public class SimuladorController(SimuladorEstado estado, IHubContext<DashboardHub> hub) : Controller
 {
+    // Só liga: usado pelo aviso "forçar falha" da tela 3D.
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> Ativar()
+    {
+        estado.Ativo = true;
+        await hub.Clients.All.SendAsync("EstadoSimuladorAlterado", new { ativo = true });
+        return Ok(new { ativo = true });
+    }
+
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Alternar(string? returnUrl)
     {

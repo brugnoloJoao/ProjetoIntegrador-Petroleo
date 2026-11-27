@@ -1,0 +1,21 @@
+@* Lista fechada dos tipos de equipamento. Model: nome do campo e valor atual. *@
+@model (string Campo, string? Atual)
+
+@{
+    var atual = TiposEquipamento.Normalizar(Model.Atual);
+    var foraDaLista = atual.Length > 0 && !TiposEquipamento.Todos.Any(t => TiposEquipamento.Normalizar(t) == atual);
+}
+
+<select id="@Model.Campo" name="@Model.Campo" class="form-select"
+        data-val="@(Model.Campo == "Tipo" ? "true" : null)"
+        data-val-required="@(Model.Campo == "Tipo" ? "Escolha o tipo de equipamento." : null)">
+    <option value="">Selecione o tipo</option>
+    @foreach (var tipo in TiposEquipamento.Todos)
+    {
+        <option value="@tipo" selected="@(TiposEquipamento.Normalizar(tipo) == atual)">@tipo</option>
+    }
+</select>
+@if (foraDaLista)
+{
+    <span class="create-field-hint is-aviso">⚠ O tipo atual, “@Model.Atual”, não está na lista. Escolha um.</span>
+}

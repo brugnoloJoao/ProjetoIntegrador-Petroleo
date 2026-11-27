@@ -8,13 +8,16 @@ namespace ProjetoIntegrador_Petroleo.Models
         public int AtivoId { get; set; }
         public Ativo? Ativo { get; set; }
 
-        [Required, StringLength(50)]
+        [Required(ErrorMessage = "Escolha o parâmetro."), StringLength(50)]
         public string Nome { get; set; } = "";      // Temperatura, Pressão...
 
-        [StringLength(10)]
+        [Required(ErrorMessage = "Escolha a unidade."), StringLength(10)]
         public string Unidade { get; set; } = "";   // °C, bar, mm/s
 
+        [Required(ErrorMessage = "Informe o limite de atenção.")]
         public double LimiteAtencao { get; set; }
+
+        [Required(ErrorMessage = "Informe o limite crítico.")]
         public double LimiteCritico { get; set; }
 
         public List<Leitura> Leituras { get; set; } = new();

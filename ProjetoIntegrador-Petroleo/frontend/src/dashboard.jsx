@@ -18,6 +18,8 @@ function useDashboard() {
   const connection = useRef(null);
   const serverConfig = window.petroSyncDashboard ?? {};
   const config = {
+    autenticado: serverConfig.autenticado !== false,
+    loginUrl: serverConfig.loginUrl || '/Identity/Account/Login',
     indicatorsUrl: serverConfig.indicatorsUrl || serverConfig.IndicatorsUrl || '/Home/Indicadores',
     historyUrl: serverConfig.historyUrl || serverConfig.HistoryUrl || '/Home/Historico',
     exportUrl: serverConfig.exportUrl || serverConfig.ExportUrl || '',
@@ -47,6 +49,7 @@ function useDashboard() {
   };
 
   useEffect(() => {
+    if (!config.autenticado) return undefined; // tela de apresentação: não consulta nada
     if (config.parameters.length) loadHistory(config.parameters[0].value);
     refreshMetrics();
     const timer = window.setInterval(refreshMetrics, 15000);
@@ -126,15 +129,15 @@ function Dashboard() {
   return <div className="dashboard-react">
     {fundo && <Suspense fallback={null}><ThreeBackground /></Suspense>}
     <section className="dashboard-content">
-      <header className="dashboard-heading"><div><p className="dashboard-eyebrow"><i /> MONITORAMENTO DE ATIVOS</p><h1>Decisões melhores começam com <em>visibilidade.</em></h1><p className="dashboard-lead">Monitore equipamentos e transforme dados em manutenção inteligente.</p></div><div className="dashboard-status"><div className="dashboard-status-actions">{config.exportUrl && <a className="dashboard-report-button" href={config.exportUrl}>↓ Exportar relatório</a>}<span className={`connection-pill ${status === 'Conectado' ? 'online' : ''}`}>{status}</span></div><small>Atualizado às {updatedAt}</small></div></header>
-      <div className="dashboard-metrics">
+      <header className="dashboard-heading"><div><p className="dashboard-eyebrow"><i /> MONITORAMENTO DE ATIVOS</p><h1>Decisões melhores começam com <em>visibilidade.</em></h1><p className="dashboard-lead">Monitore equipamentos e transforme dados em manutenção inteligente.</p>{!config.autenticado && <a className="dashboard-report-button dashboard-enter" href={config.loginUrl}>Entrar na plataforma →</a>}</div>{config.autenticado ? <div className="dashboard-status"><div className="dashboard-status-actions">{config.exportUrl && <a className="dashboard-report-button" href={config.exportUrl}>↓ Exportar relatório</a>}<span className={`connection-pill ${status === 'Conectado' ? 'online' : ''}`}>{status}</span></div><small>Atualizado às {updatedAt}</small></div> : null}</header>
+      {config.autenticado && <><div className="dashboard-metrics">
         <MetricCard label="Ativos monitorados" value={<NumeroAnimado valor={metrics.total} />} note="Equipamentos cadastrados" icon="◉" />
         <MetricCard label="Em operação" value={<NumeroAnimado valor={metrics.operando} />} note="Ativos operacionais" icon="↗" />
         <MetricCard label="Alertas ativos" value={<NumeroAnimado valor={metrics.alertas} />} note="Precisam de acompanhamento" icon="!" tone="metric-critical" />
         <MetricCard label="Ordens abertas" value={<NumeroAnimado valor={metrics.os} />} note="Manutenções em andamento" icon="▤" tone="metric-warning" />
         <MetricCard label="Disponibilidade" value={availability} note="Índice da operação" icon="✓" />
       </div>
-      <section className="trend-panel"><div className="trend-toolbar"><div><h2>Tendência dos parâmetros</h2><p>Leituras recentes e limites operacionais</p></div><label>Parâmetro<select value={parameterId} onChange={(event) => loadHistory(event.target.value)}>{config.parameters.map((parameter) => <option value={parameter.value} key={parameter.value}>{parameter.text}</option>)}</select></label></div><TrendChart history={history} /></section>
+      <section className="trend-panel"><div className="trend-toolbar"><div><h2>Tendência dos parâmetros</h2><p>Leituras recentes e limites operacionais</p></div><label>Parâmetro<select value={parameterId} onChange={(event) => loadHistory(event.target.value)}>{config.parameters.map((parameter) => <option value={parameter.value} key={parameter.value}>{parameter.text}</option>)}</select></label></div><TrendChart history={history} /></section></>}
     </section>
   </div>;
 }

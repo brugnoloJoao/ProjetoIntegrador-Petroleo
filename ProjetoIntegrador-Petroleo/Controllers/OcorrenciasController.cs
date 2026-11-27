@@ -21,7 +21,7 @@ public sealed class OcorrenciasController(
     private const int PorPagina = 40;
 
     private sealed record OrdemDoParametro(
-        int Id, int AlertaId, int ParametroId, StatusOrdem Status,
+        int Id, int? AlertaId, int? ParametroId, int AtivoId, StatusOrdem Status,
         DateTime DataAbertura, DateTime? DataEncerramento, string? OperadorId);
 
     public async Task<IActionResult> Index(int? ativoId, int dias = 7, int pagina = 1)
@@ -47,9 +47,12 @@ public sealed class OcorrenciasController(
         var alertas = await consultaAlertas.OrderByDescending(a => a.DataHora).Take(limite).ToListAsync();
 
         var idsParametros = alertas.Select(a => a.ParametroId).Distinct().ToList();
+        var idsAtivos = alertas.Select(a => a.Parametro!.AtivoId).Distinct().ToList();
         var ordensDosAlertas = await db.OrdensServico.AsNoTracking()
-            .Where(o => o.AlertaId != null && idsParametros.Contains(o.Alerta!.ParametroId))
-            .Select(o => new OrdemDoParametro(o.Id, o.AlertaId!.Value, o.Alerta!.ParametroId, o.Status,
+            .Where(o => (o.AlertaId != null && idsParametros.Contains(o.Alerta!.ParametroId))
+                || (o.AlertaId == null && o.Status == StatusOrdem.Encerrada && idsAtivos.Contains(o.AtivoId)))
+            .Select(o => new OrdemDoParametro(o.Id, o.AlertaId,
+                o.AlertaId == null ? null : o.Alerta!.ParametroId, o.AtivoId, o.Status,
                 o.DataAbertura, o.DataEncerramento, o.OperadorId))
             .ToListAsync();
 
@@ -140,10 +143,12 @@ public sealed class OcorrenciasController(
 
         // Mesma regra das ordens sugeridas; a ordem ligada ao próprio alerta tem preferência.
         var cobertura = ordens
-            .Where(o => o.ParametroId == a.ParametroId
-                && ((o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada)
-                    || (a.Status == StatusAlerta.Normalizado
-                        && (o.DataAbertura >= a.DataHora || o.DataEncerramento >= a.DataHora))))
+            .Where(o => (o.ParametroId == a.ParametroId
+                    && ((o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada)
+                        || (a.Status == StatusAlerta.Normalizado
+                            && (o.DataAbertura >= a.DataHora || o.DataEncerramento >= a.DataHora))))
+                || (o.AlertaId == null && o.AtivoId == a.Parametro!.AtivoId
+                    && a.Status == StatusAlerta.Normalizado && o.DataEncerramento >= a.DataHora))
             .OrderByDescending(o => o.AlertaId == a.Id)
             .ThenBy(o => o.DataAbertura)
             .FirstOrDefault();

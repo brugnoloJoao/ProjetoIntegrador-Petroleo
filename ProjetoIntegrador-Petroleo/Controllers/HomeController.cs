@@ -6,10 +6,6 @@ using ProjetoIntegrador_Petroleo.Data;
 using ProjetoIntegrador_Petroleo.Services;
 using ProjetoIntegrador_Petroleo.Models;
 using System.Diagnostics;
-using System.ComponentModel.DataAnnotations;
-using System.Globalization;
-using System.Reflection;
-using System.Text;
 
 
 namespace ProjetoIntegrador_Petroleo.Controllers
@@ -28,6 +24,13 @@ namespace ProjetoIntegrador_Petroleo.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
+            // Quem não entrou vê só a apresentação: nada do que está cadastrado.
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                ViewBag.Parametros = new List<SelectListItem>();
+                return View();
+            }
+
             var lista = await _db.Parametros
                 .AsNoTracking()
                 .OrderBy(p => p.Ativo!.Nome).ThenBy(p => p.Nome)
@@ -80,7 +83,6 @@ namespace ProjetoIntegrador_Petroleo.Controllers
         [HttpGet]
         public async Task<IActionResult> ExportarRelatorio()
         {
-            var cultura = CultureInfo.GetCultureInfo("pt-BR");
             var incluirSimulados = _simulador.Ativo;
             var ativos = await _db.Ativos.AsNoTracking()
                 .OrderBy(a => a.Nome)
@@ -120,107 +122,11 @@ namespace ProjetoIntegrador_Petroleo.Controllers
                 .ToListAsync();
 
             var agoraUtc = DateTime.UtcNow;
-            var relatorio = new StringBuilder();
-            var colunas = new[]
-            {
-                "Tipo de registro", "ID", "Data/hora", "Equipamento", "Tag", "Item", "Status",
-                "Prioridade/severidade", "Valor", "Unidade", "Limite de atenção", "Limite crítico/violado",
-                "Desvios-padrão", "Solicitante", "Operador responsável", "Origem", "Descrição"
-            };
-            relatorio.AppendLine(string.Join(";", colunas.Select(EscalarCsv)));
+            var planilha = RelatorioExcel.Gerar(new DadosRelatorio(
+                agoraUtc, incluirSimulados, ativos, parametros, alertas, anomalias, ordens));
 
-            void Adicionar(
-                string tipo,
-                string? id = null,
-                string? dataHora = null,
-                string? equipamento = null,
-                string? tag = null,
-                string? item = null,
-                string? status = null,
-                string? prioridade = null,
-                string? valor = null,
-                string? unidade = null,
-                string? limiteAtencao = null,
-                string? limiteCritico = null,
-                string? desviosPadrao = null,
-                string? solicitante = null,
-                string? operador = null,
-                string? origem = null,
-                string? descricao = null)
-            {
-                var campos = new string?[]
-                {
-                    tipo, id, dataHora, equipamento, tag, item, status, prioridade, valor, unidade,
-                    limiteAtencao, limiteCritico, desviosPadrao, solicitante, operador, origem, descricao
-                };
-                relatorio.AppendLine(string.Join(";", campos.Select(EscalarCsv)));
-            }
-
-            Adicionar("Relatório", item: "PetroSync · relatório operacional",
-                descricao: $"Gerado em {FormatarDataLocal(agoraUtc)} · Simulação {(incluirSimulados ? "ativa" : "pausada")}");
-            Adicionar("Resumo", item: "Ativos cadastrados", valor: ativos.Count.ToString(cultura), unidade: "registros");
-            Adicionar("Resumo", item: "Ativos operando", valor: ativos.Count(a => a.Status == StatusAtivo.Operando).ToString(cultura), unidade: "registros");
-            Adicionar("Resumo", item: "Parâmetros cadastrados", valor: parametros.Count.ToString(cultura), unidade: "registros");
-            Adicionar("Resumo", item: "Alertas ativos", valor: alertas.Count(a => a.Status == StatusAlerta.Ativo).ToString(cultura), unidade: "registros");
-            Adicionar("Resumo", item: "Anomalias exportadas", valor: anomalias.Count.ToString(cultura), unidade: "registros");
-            Adicionar("Resumo", item: "OS em aberto", valor: ordens.Count(o => o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada).ToString(cultura), unidade: "registros");
-            Adicionar("Informação", item: "Limite do relatório", descricao: "Até 5.000 alertas, anomalias e OS mais recentes por categoria.");
-
-            foreach (var ativo in ativos)
-                Adicionar("Ativo", id: ativo.Id.ToString(cultura), equipamento: ativo.Nome, tag: ativo.Tag,
-                    item: ativo.Tipo, status: NomeExibicao(ativo.Status));
-
-            foreach (var parametro in parametros)
-                Adicionar("Parâmetro", id: parametro.Id.ToString(cultura), equipamento: parametro.Ativo?.Nome,
-                    tag: parametro.Ativo?.Tag, item: parametro.Nome, unidade: parametro.Unidade,
-                    limiteAtencao: parametro.LimiteAtencao.ToString("0.##", cultura),
-                    limiteCritico: parametro.LimiteCritico.ToString("0.##", cultura));
-
-            foreach (var alerta in alertas)
-                Adicionar("Alerta", id: alerta.Id.ToString(cultura), dataHora: FormatarDataLocal(alerta.DataHora),
-                    equipamento: alerta.Parametro?.Ativo?.Nome, tag: alerta.Parametro?.Ativo?.Tag,
-                    item: alerta.Parametro?.Nome, status: NomeExibicao(alerta.Status),
-                    prioridade: NomeExibicao(alerta.Severidade), valor: alerta.ValorMedido.ToString("0.##", cultura),
-                    unidade: alerta.Parametro?.Unidade, limiteCritico: alerta.LimiteViolado.ToString("0.##", cultura),
-                    origem: alerta.Simulada ? "Simulada" : "Real", descricao: alerta.Observacao);
-
-            foreach (var anomalia in anomalias)
-                Adicionar("Anomalia", id: anomalia.Id.ToString(cultura), dataHora: FormatarDataLocal(anomalia.DataHora),
-                    equipamento: anomalia.Parametro?.Ativo?.Nome, tag: anomalia.Parametro?.Ativo?.Tag,
-                    item: anomalia.Parametro?.Nome, status: "Detectada",
-                    valor: anomalia.ValorMedido.ToString("0.##", cultura), unidade: anomalia.Parametro?.Unidade,
-                    desviosPadrao: anomalia.Score.ToString("0.##", cultura), origem: anomalia.Simulada ? "Simulada" : "Real",
-                    descricao: anomalia.Descricao);
-
-            foreach (var ordem in ordens)
-                Adicionar("Ordem de serviço", id: ordem.Id.ToString(cultura), dataHora: FormatarDataLocal(ordem.DataAbertura),
-                    equipamento: ordem.Ativo?.Nome, tag: ordem.Ativo?.Tag, item: ordem.Titulo,
-                    status: NomeExibicao(ordem.Status), prioridade: NomeExibicao(ordem.Prioridade),
-                    solicitante: ordem.SolicitanteId, operador: ordem.Operador?.Email, descricao: ordem.Descricao);
-
-            var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(relatorio.ToString())).ToArray();
-            return File(bytes, "text/csv; charset=utf-8", $"relatorio_petrosync_{agoraUtc:yyyyMMdd_HHmm}.csv");
-        }
-
-        private static string EscalarCsv(string? valor)
-        {
-            if (string.IsNullOrEmpty(valor)) return "";
-            return valor.Contains(';') || valor.Contains('"') || valor.Contains('\r') || valor.Contains('\n')
-                ? $"\"{valor.Replace("\"", "\"\"")}\""
-                : valor;
-        }
-
-        private static string FormatarDataLocal(DateTime dataUtc)
-        {
-            var fuso = TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo");
-            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(dataUtc, DateTimeKind.Utc), fuso)
-                .ToString("dd/MM/yyyy HH:mm:ss", CultureInfo.GetCultureInfo("pt-BR"));
-        }
-
-        private static string NomeExibicao<TEnum>(TEnum valor) where TEnum : struct, Enum
-        {
-            var membro = typeof(TEnum).GetMember(valor.ToString()).FirstOrDefault();
-            return membro?.GetCustomAttribute<DisplayAttribute>()?.GetName() ?? valor.ToString();
+            return File(planilha, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"relatorio_petrosync_{agoraUtc.HorarioDeBrasilia("yyyyMMdd_HHmm")}.xlsx");
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

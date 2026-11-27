@@ -2,12 +2,14 @@
 import { contarDaPagina } from './effects/contagem.js';
 import { iniciarAlarme } from './effects/alarme.js';
 import { prepararCartoes } from './effects/cartoes.js';
+import { ligarUnidadePadrao } from './effects/parametro.js';
 import { iniciarCronometros } from './effects/espera.js';
 import { iniciarPresenca } from './effects/presenca.js';
 import { prepararArquivos } from './effects/preparar.js';
 import { marcarVisto, prepararLista } from './effects/vistos.js';
 
 prepararCartoes();
+ligarUnidadePadrao();
 contarDaPagina();
 iniciarCronometros();
 prepararArquivos();

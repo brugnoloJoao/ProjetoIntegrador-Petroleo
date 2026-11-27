@@ -1,42 +1,91 @@
 ﻿@model ProjetoIntegrador_Petroleo.Models.Alerta
+@using ProjetoIntegrador_Petroleo.Models
+@using System.Globalization
+
 @{
+    var parametro = Model.Parametro!;
+    var ativo = parametro.Ativo!;
+    var critico = Model.Severidade == Severidade.Critico;
+    var encerrado = Model.Status == StatusAlerta.Normalizado;
+    var voltarDetalhes = ViewData["Voltar"] as string == "detalhes";
+
+    // Barra de comparação: sobra um espaço à direita do maior valor.
+    var escala = Math.Max(Math.Max(Model.ValorMedido, Model.LimiteViolado) * 1.15, 0.0001);
+    string Posicao(double valor) => (Math.Clamp(valor / escala, 0, 1) * 100).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+    var excesso = Model.LimiteViolado > 0 ? (Model.ValorMedido / Model.LimiteViolado - 1) * 100 : 0;
+
     ViewData["Title"] = "Reconhecer alerta";
 }
 
-<h1>Reconhecer alerta</h1>
-
-<dl class="row">
-    <dt class="col-sm-3">Equipamento</dt>
-    <dd class="col-sm-9">@Model.Parametro?.Ativo?.Nome <span class="asset-tag">@Model.Parametro?.Ativo?.Tag</span></dd>
-
-    <dt class="col-sm-3">Parâmetro</dt>
-    <dd class="col-sm-9">@Model.Parametro?.Nome</dd>
-
-    <dt class="col-sm-3">Severidade</dt>
-    <dd class="col-sm-9">@Model.Severidade</dd>
-
-    <dt class="col-sm-3">Valor medido</dt>
-    <dd class="col-sm-9">@Model.ValorMedido.ToString("F1") @Model.Parametro?.Unidade</dd>
-
-    <dt class="col-sm-3">Limite violado</dt>
-    <dd class="col-sm-9">@Model.LimiteViolado.ToString("F1") @Model.Parametro?.Unidade</dd>
-
-    <dt class="col-sm-3">Data/hora</dt>
-    <dd class="col-sm-9">@TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(Model.DataHora, DateTimeKind.Utc), TimeZoneInfo.FindSystemTimeZoneById("America/Sao_Paulo")).ToString("dd/MM/yyyy HH:mm:ss")</dd>
-
-    <dt class="col-sm-3">Status</dt>
-    <dd class="col-sm-9">@Model.Status</dd>
-</dl>
-
-<form asp-action="Reconhecer" method="post">
-    <input type="hidden" name="id" value="@Model.Id" />
-    <div asp-validation-summary="All" class="text-danger"></div>
-
-    <div class="mb-3">
-        <label for="observacao" class="form-label">Observação</label>
-        <textarea id="observacao" name="observacao" class="form-control" rows="3" maxlength="500" required></textarea>
+<section class="page-heading detail-page-heading">
+    <div>
+        <p class="eyebrow">CENTRAL DE EVENTOS / ALERTA #@Model.Id</p>
+        <div class="detail-title-line">
+            <h1>Reconhecer alerta</h1>
+            <span class="badge @(critico ? "bg-danger" : "telemetry-warning")">@(critico ? "⛔" : "⚠") @Model.Severidade.Nome()</span>
+            <span class="badge @(Model.Status == StatusAlerta.Ativo ? "bg-danger" : "bg-secondary")">@Model.Status.Nome()</span>
+        </div>
+        <p class="page-subtitle">@ativo.Nome <span class="asset-tag">@ativo.Tag</span></p>
     </div>
+    @if (voltarDetalhes)
+    {
+        <a asp-action="Detalhes" asp-route-id="@Model.Id" class="btn btn-outline-secondary">← Voltar para o alerta</a>
+    }
+    else
+    {
+        <a asp-action="Index" class="btn btn-outline-secondary">← Voltar para alertas</a>
+    }
+</section>
 
-    <button type="submit" class="btn btn-primary">Confirmar reconhecimento</button>
-    <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
-</form>
+<div class="ack-grid">
+    <section class="card detail-section-card ack-reading @(critico ? "is-critical" : "is-warning")">
+        <p class="eyebrow">O QUE FOI DETECTADO</p>
+        <h2>@parametro.Nome</h2>
+        <p class="ack-value"><strong data-contar>@Model.ValorMedido.ToString("F1")</strong> <span>@parametro.Unidade</span></p>
+        <p class="ack-over">
+            @(excesso >= 0.05 ? $"{excesso:F1}% acima do limite" : "No limite")
+            de @Model.LimiteViolado.ToString("F1") @parametro.Unidade
+        </p>
+        <div class="ack-bar" aria-hidden="true">
+            <span class="ack-bar-fill" style="width:@Posicao(Model.ValorMedido)"></span>
+            <span class="ack-bar-limit" style="left:@Posicao(Model.LimiteViolado)"><small>limite</small></span>
+        </div>
+        <dl class="ack-facts">
+            <div><dt>Detectado em</dt><dd>@Model.DataHora.HorarioDeBrasilia("dd/MM/yyyy 'às' HH:mm:ss")</dd></div>
+            <div><dt>Origem</dt><dd>@(Model.Simulada ? "Dado simulado" : "Sensor")</dd></div>
+        </dl>
+    </section>
+
+    <section class="card detail-section-card ack-form">
+        <p class="eyebrow">SEU REGISTRO</p>
+        <h2>O que você verificou?</h2>
+        <p class="section-kicker">
+            @(encerrado
+                ? "Este alerta já está normalizado. A observação fica registrada no histórico."
+                : "Reconhecer avisa a equipe de que alguém está cuidando e tira o alerta das notificações. A máquina só volta ao normal quando a ordem de serviço for encerrada.")
+        </p>
+
+        <form asp-action="Reconhecer" method="post">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <input type="hidden" name="voltar" value="@(voltarDetalhes ? "detalhes" : "")" />
+            <div asp-validation-summary="All" class="validation-summary"></div>
+
+            <label for="observacao" class="form-label">Observação</label>
+            <textarea id="observacao" name="observacao" class="form-control" rows="6" maxlength="500" required
+                      placeholder="Ex.: Conferi no local, o valor está alto. Vou abrir a ordem de serviço."></textarea>
+            <span class="create-field-hint">Obrigatória, com até 500 caracteres. Seu usuário e o horário são gravados junto.</span>
+
+            <div class="create-form-actions">
+                @if (voltarDetalhes)
+                {
+                    <a asp-action="Detalhes" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancelar</a>
+                }
+                else
+                {
+                    <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                }
+                <button type="submit" class="btn btn-primary">✓ Confirmar reconhecimento</button>
+            </div>
+        </form>
+    </section>
+</div>

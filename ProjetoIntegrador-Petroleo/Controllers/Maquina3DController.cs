@@ -66,6 +66,20 @@ public sealed class Maquina3DController : Controller
         if (!await _db.Ativos.AnyAsync(a => a.Id == ativoId))
             return BadRequest(new { mensagem = "Equipamento não encontrado." });
 
+        var atual = _controles.Ler(ativoId);
+        if (falhaSimulada && !atual.FalhaSimulada)
+        {
+            if (!_simulador.Ativo)
+                return BadRequest(new { mensagem = "A simulação está pausada. Ative-a para forçar uma falha." });
+            if (!await _db.Parametros.AnyAsync(p => p.AtivoId == ativoId))
+                return BadRequest(new { mensagem = "Cadastre parâmetros neste equipamento antes de forçar uma falha." });
+        }
+        else if (!falhaSimulada && atual.FalhaSimulada
+            && await _db.Alertas.AnyAsync(a => a.Parametro!.AtivoId == ativoId && a.Status != StatusAlerta.Normalizado))
+        {
+            return BadRequest(new { mensagem = "A falha só termina quando a ordem de serviço for encerrada." });
+        }
+
         var estado = _controles.Atualizar(ativoId, Math.Round(cadencia, 1), falhaSimulada);
         var resposta = new { ativoId, cadencia = estado.Cadencia, falhaSimulada = estado.FalhaSimulada };
 
@@ -95,9 +109,10 @@ public sealed class Maquina3DController : Controller
                 a.Severidade, a.Status, a.Simulada))
             .ToListAsync();
 
+        // Reconhecido ou com OS aberta, o defeito continua até a OS ser encerrada.
         (string Status, string StatusReal) Condicao(Ativo? ativo)
         {
-            var doAtivo = alertas.Where(a => a.AtivoId == ativo?.Id && a.Status == StatusAlerta.Ativo).ToList();
+            var doAtivo = alertas.Where(a => a.AtivoId == ativo?.Id).ToList();
             var operando = ativo is null || ativo.Status == StatusAtivo.Operando;
             return (
                 CalcularStatus(doAtivo.Select(a => a.Severidade), operando),
@@ -163,8 +178,26 @@ public sealed class Maquina3DController : Controller
             ? new Maquina3DControleSnapshot(Maquina3DControleEstado.CadenciaNominal, false)
             : _controles.Ler(selecionado.Id);
 
+        // Situação do conserto: alertas em aberto e a OS que está cuidando da máquina.
+        var emAberto = alertas.Count(a => a.AtivoId == selecionado?.Id);
+        var ordensDaMaquina = _db.OrdensServico.AsNoTracking().Where(o => selecionado != null
+            && o.AtivoId == selecionado.Id
+            && o.Status != StatusOrdem.Encerrada && o.Status != StatusOrdem.Rejeitada);
+        if (User.IsInRole("Operador") && !User.IsInRole("Engenheiro") && !User.IsInRole("Gestor"))
+        {
+            // O operador continua vendo só as próprias ordens.
+            var operadorId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            ordensDaMaquina = ordensDaMaquina.Where(o => o.OperadorId == operadorId);
+        }
+        var ordem = await ordensDaMaquina.OrderByDescending(o => o.DataAbertura)
+            .Select(o => new { o.Id, o.Status })
+            .FirstOrDefaultAsync();
+
         return new
         {
+            alertasAbertos = emAberto,
+            ordemAberta = ordem is null ? null : new { id = ordem.Id, status = ordem.Status.Nome() },
+            podeAtivarSimulacao = User.IsInRole("Engenheiro") || User.IsInRole("Gestor"),
             ativo = selecionado is null ? null : new
             {
                 id = selecionado.Id,
@@ -196,7 +229,7 @@ public sealed class Maquina3DController : Controller
             controles = new { cadencia = controles.Cadencia, falhaSimulada = controles.FalhaSimulada },
             leituras,
             falhaSimulada = simulacaoAtiva && alertas.Any(a => a.AtivoId == selecionado?.Id
-                && a.Status == StatusAlerta.Ativo && a.Simulada && a.Severidade == Severidade.Critico),
+                && a.Simulada && a.Severidade == Severidade.Critico),
             sugestao
         };
     }

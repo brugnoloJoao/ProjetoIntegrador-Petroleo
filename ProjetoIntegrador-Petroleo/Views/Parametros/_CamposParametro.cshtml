@@ -1,0 +1,50 @@
+@* Nome e unidade em listas: escolher o parâmetro já define a unidade padrão. *@
+@model ProjetoIntegrador_Petroleo.Models.Parametro?
+
+@{
+    var nome = Model?.Nome;
+    var unidade = Model?.Unidade;
+    var escolhido = CatalogoParametros.Buscar(nome);
+    var foraDaLista = !string.IsNullOrWhiteSpace(nome) && escolhido == null;
+}
+
+<div class="create-field">
+    <label for="Nome" class="form-label">Parâmetro</label>
+    <select id="Nome" name="Nome" class="form-select" data-parametro-nome
+            data-val="true" data-val-required="Escolha o parâmetro.">
+        <option value="">Selecione o parâmetro</option>
+        @foreach (var grupo in CatalogoParametros.Opcoes.GroupBy(o => o.Grandeza))
+        {
+            <optgroup label="@grupo.Key">
+                @foreach (var opcao in grupo)
+                {
+                    <option value="@opcao.Nome" data-grandeza="@opcao.Grandeza" data-unidade="@opcao.Unidade"
+                            selected="@(opcao.Nome == escolhido?.Nome)">@opcao.Nome (@opcao.Unidade)</option>
+                }
+            </optgroup>
+        }
+    </select>
+    <span asp-validation-for="Nome" class="field-validation"></span>
+    @if (foraDaLista)
+    {
+        <span class="create-field-hint is-aviso">⚠ O nome atual, “@nome”, não está na lista. Escolha um.</span>
+    }
+</div>
+
+<div class="create-field">
+    <label for="Unidade" class="form-label">Unidade</label>
+    <select id="Unidade" name="Unidade" class="form-select" data-parametro-unidade
+            data-val="true" data-val-required="Escolha a unidade.">
+        <option value="">Selecione a unidade</option>
+        @foreach (var grupo in CatalogoParametros.Unidades)
+        {
+            foreach (var opcao in grupo.Value)
+            {
+                <option value="@opcao" data-grandeza="@grupo.Key"
+                        selected="@(opcao == unidade && escolhido?.Grandeza == grupo.Key)">@opcao</option>
+            }
+        }
+    </select>
+    <span asp-validation-for="Unidade" class="field-validation"></span>
+    <span class="create-field-hint">Preenchida com o padrão do parâmetro; troque se a sua medição usar outra.</span>
+</div>

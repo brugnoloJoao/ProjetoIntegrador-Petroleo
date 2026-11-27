@@ -16,11 +16,6 @@ public class SimuladorLeituras : BackgroundService
     private readonly SimuladorEstado _estado;
     private readonly Maquina3DControleEstado _controles;
 
-    // Guarda os picos em andamento:
-    // parametroId -> (ciclos restantes, valor do pico)
-    private readonly Dictionary<int, (int Restantes, double Nivel)> _picos = new();
-    private readonly HashSet<int> _ativosEmFalha = new();
-
     public SimuladorLeituras(
         IServiceScopeFactory scopeFactory,
         ILogger<SimuladorLeituras> logger,
@@ -93,25 +88,19 @@ public class SimuladorLeituras : BackgroundService
             .Distinct()
             .ToDictionary(id => id, _controles.Ler);
 
-        // Ao encerrar a falha de uma máquina, descarta os picos pendentes dela.
-        foreach (var (ativoId, controle) in controlesPorAtivo)
-        {
-            if (controle.FalhaSimulada)
-            {
-                _ativosEmFalha.Add(ativoId);
-            }
-            else if (_ativosEmFalha.Remove(ativoId))
-            {
-                foreach (var parametroId in parametros.Where(p => p.AtivoId == ativoId).Select(p => p.Id))
-                    _picos.Remove(parametroId);
-            }
-        }
+        // Defeitos que ninguém consertou ainda: o valor fica neles até a OS ser encerrada.
+        var emAberto = (await db.Alertas.AsNoTracking()
+                .Where(a => a.Simulada && a.Status != StatusAlerta.Normalizado)
+                .OrderByDescending(a => a.Severidade)
+                .ToListAsync(ct))
+            .GroupBy(a => a.ParametroId)
+            .ToDictionary(g => g.Key, g => g.First());
 
         var novas = new List<object>();
 
         foreach (var p in parametros)
         {
-            var valor = GerarValor(p, controlesPorAtivo[p.AtivoId]);
+            var valor = GerarValor(p, controlesPorAtivo[p.AtivoId], emAberto.GetValueOrDefault(p.Id));
 
             await VerificarAnomaliaAsync(db, p, valor, agora, ct);
 
@@ -147,7 +136,7 @@ public class SimuladorLeituras : BackgroundService
     }
 
     // ---------- Geração do valor ----------
-    private double GerarValor(Parametro p, Maquina3DControleSnapshot controles)
+    private static double GerarValor(Parametro p, Maquina3DControleSnapshot controles, Alerta? defeito)
     {
         var nomeParametro = p.Nome.ToLowerInvariant();
         var proporcaoVelocidade = controles.Cadencia / Maquina3DControleEstado.CadenciaNominal;
@@ -170,30 +159,29 @@ public class SimuladorLeituras : BackgroundService
                 return Math.Round(Math.Max(0, baseline * 0.35 + Gaussiano() * baseline * 0.01), 2);
         }
 
-        // Picos aleatórios seguem ativos para os demais ciclos simulados.
-        if (_picos.TryGetValue(p.Id, out var pico) && pico.Restantes > 0)
-        {
-            _picos[p.Id] = (pico.Restantes - 1, pico.Nivel);
+        if (defeito is not null)
+            return ManterDefeito(p, defeito);
 
-            return Math.Round(
-                pico.Nivel + Gaussiano() * pico.Nivel * 0.005, 2);
+        // Funcionamento normal: pequena oscilação. Falhas só quando alguém força.
+        return Math.Round(baseline + Gaussiano() * baseline * 0.03, 2);
+    }
+
+    // Mantém a leitura na faixa do alerta aberto (crítica ou de atenção).
+    private static double ManterDefeito(Parametro p, Alerta defeito)
+    {
+        var ruido = 1 + Gaussiano() * 0.004;
+
+        if (defeito.Severidade == Severidade.Critico)
+        {
+            var nivel = Math.Max(defeito.ValorMedido, p.LimiteCritico * 1.02);
+            return Math.Round(Math.Max(nivel * ruido, p.LimiteCritico * 1.001), 2);
         }
 
-        var valor = baseline + Gaussiano() * baseline * 0.03;
-
-        // 2% de chance por ciclo de iniciar um pico.
-        // Duração: 12 ciclos.
-        if (Random.Shared.NextDouble() < 0.02)
-        {
-            var nivel = p.LimiteAtencao
-                + Random.Shared.NextDouble()
-                * (p.LimiteCritico * 1.05 - p.LimiteAtencao);
-
-            _picos[p.Id] = (12, nivel);
-
-            return Math.Round(nivel, 2);
-        }
-
+        var teto = p.LimiteCritico > p.LimiteAtencao ? p.LimiteCritico : p.LimiteAtencao * 1.1;
+        var folga = teto - p.LimiteAtencao;
+        var valor = defeito.ValorMedido * ruido;
+        valor = Math.Min(valor, teto - folga * 0.05);
+        valor = Math.Max(valor, p.LimiteAtencao + folga * 0.05);
         return Math.Round(valor, 2);
     }
 
@@ -226,14 +214,9 @@ public class SimuladorLeituras : BackgroundService
                 && a.Status != StatusAlerta.Normalizado,
                 ct);
 
+        // Valor normal não encerra alerta: quem encerra é a ordem de serviço concluída.
         if (sev == null)
-        {
-            // Valor voltou ao normal: encerra o alerta aberto.
-            if (aberto != null)
-                aberto.Status = StatusAlerta.Normalizado;
-
             return;
-        }
 
         var limite = sev == Severidade.Critico
             ? p.LimiteCritico

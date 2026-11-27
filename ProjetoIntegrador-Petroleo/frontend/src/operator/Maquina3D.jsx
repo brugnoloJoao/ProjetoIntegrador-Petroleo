@@ -50,6 +50,9 @@ export default function Maquina3D({
   simulacaoAtiva = false,
   origemLeituras = 'SEM LEITURAS',
   movimentoAtivo = true,
+  onForcarFalha,
+  alertasAbertos = 0,
+  conserto = null,
 }) {
   const mountRef = useRef(null);
   const pinsDomRef = useRef({});
@@ -59,7 +62,6 @@ export default function Maquina3D({
   const [erroCena, setErroCena] = useState(false);
   const [preparando, setPreparando] = useState(true);
   const [velocidadeLocal, setVelocidadeLocal] = useState(cadencia);
-  const [apontarFalha, setApontarFalha] = useState(() => localStorage.getItem('petrosync:apontar-falha') !== 'nao');
   const [pedidoCamera, setPedidoCamera] = useState(0);
 
   // Primeira leitura crítica e o componente do modelo que responde por ela.
@@ -73,15 +75,9 @@ export default function Maquina3D({
     ? (modelo?.pins ?? []).find((pin) => (pin.foco ?? pin.termos ?? [])
       .some((termo) => leituraEmFalha.nome?.toLocaleLowerCase('pt-BR').includes(termo)))
     : undefined;
-  const alvo = apontarFalha ? pinoEmFalha : undefined;
-
   const escolherCamera = (preset) => {
     setPresetAtivo(preset);
     setPedidoCamera((n) => n + 1);
-  };
-  const alternarApontar = () => {
-    localStorage.setItem('petrosync:apontar-falha', apontarFalha ? 'nao' : 'sim');
-    setApontarFalha(!apontarFalha);
   };
 
   // O laço de animação lê sempre os valores mais recentes sem recriar a cena.
@@ -89,7 +85,7 @@ export default function Maquina3D({
   estadoRef.current = {
     cadencia, falha: falhaSimulada, movimento: movimentoAtivo, raioX, preset: presetAtivo,
     razoes: calcularRazoes(leituras),
-    alvo, pedido: pedidoCamera,
+    pedido: pedidoCamera,
     leituras, ativoId: ativo?.id ?? null,
   };
 
@@ -159,7 +155,6 @@ export default function Maquina3D({
     let desiredSpherical = { ...spherical };
     let ultimoPreset = "geral";
     let ultimoPedido = estadoRef.current.pedido;
-    let ultimoAlvo = null;
 
     setPreparando(true);
     const efeitos = criarEfeitos(scene, semAnimacao());
@@ -214,18 +209,6 @@ export default function Maquina3D({
         ultimoPedido = estado.pedido;
         irPara(presets[ultimoPreset] || presets.geral);
       }
-      // A câmera só se move quando a falha muda; depois o usuário gira à vontade.
-      const idAlvo = estado.alvo?.id ?? null;
-      if (idAlvo !== ultimoAlvo) {
-        ultimoAlvo = idAlvo;
-        if (estado.alvo) {
-          const base = presets[estado.alvo.preset] || presets.geral;
-          irPara({ ...base, target: estado.alvo.pos, radius: Math.max(5.6, Math.min(base.radius, 6.4)) });
-        } else {
-          irPara(presets[ultimoPreset] || presets.geral);
-        }
-      }
-
       for (const material of kit.materiaisWire) material.wireframe = estado.raioX;
 
       const passo = estado.movimento ? dt : 0;
@@ -368,19 +351,13 @@ export default function Maquina3D({
           ))}
           <button
             type="button"
-            className={`op-preset-btn ${raioX ? "ativo" : ""}`}
+            className={`op-xray-button ${raioX ? "ativo" : ""}`}
             aria-pressed={raioX}
+            title="Deixa a máquina transparente para ver por dentro"
             onClick={() => setRaioX((v) => !v)}
           >
-            Raio-X
-          </button>
-          <button
-            type="button"
-            className={`op-preset-btn ${apontarFalha ? "ativo" : ""}`}
-            aria-pressed={apontarFalha}
-            onClick={alternarApontar}
-          >
-            Apontar falha
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" /><circle cx="12" cy="12" r="2.8" /></svg>
+            {raioX ? 'Raio-X ligado' : 'Ver em Raio-X'}
           </button>
         </div>
       </div>
@@ -407,16 +384,30 @@ export default function Maquina3D({
             <small>{modelo?.velocidade.formatar ? modelo.velocidade.formatar(18) : '171%'}</small>
           </span>
         </label>
-        <button
-          type="button"
-          className={`op-failure-button ${falhaConfigurada ? 'is-active' : ''}`}
-          aria-pressed={falhaConfigurada}
-          disabled={controlesBloqueados}
-          onClick={() => onControlChange?.({ falhaSimulada: !falhaConfigurada })}
-        >
-          <i /> {falhaConfigurada ? 'Encerrar falha simulada' : 'Simular falha'}
-        </button>
-        {!simulacaoAtiva && <span className="op-simulator-paused">Simulação geral pausada; alterações ficam pendentes até reativá-la.</span>}
+        {falhaConfigurada && alertasAbertos === 0 ? (
+          <button type="button" className="op-failure-button is-active" onClick={() => onControlChange?.({ falhaSimulada: false })}>
+            <i /> Cancelar falha forçada
+          </button>
+        ) : (
+          <button
+            type="button"
+            className={`op-failure-button ${falhaConfigurada ? 'is-active' : ''}`}
+            disabled={controlesBloqueados || falhaConfigurada}
+            onClick={onForcarFalha}
+          >
+            <i /> {falhaConfigurada ? 'Falha forçada' : 'Forçar Falha'}
+          </button>
+        )}
+        {!simulacaoAtiva && <span className="op-simulator-paused">Simulação pausada. Para forçar uma falha é preciso ativá-la.</span>}
+        {simulacaoAtiva && falhaConfigurada && alertasAbertos === 0 && (
+          <span className="op-simulator-paused" role="status">Falha forçada: aguardando a próxima leitura…</span>
+        )}
+        {alertasAbertos > 0 && (
+          <span className="op-repair-note" role="status">
+            ⚠ {alertasAbertos === 1 ? '1 alerta em aberto' : `${alertasAbertos} alertas em aberto`}. A máquina só volta ao normal quando a ordem de serviço for encerrada.
+            {conserto && <a href={conserto.href}>{conserto.texto} →</a>}
+          </span>
+        )}
         {erroControle && <span className="op-control-error" role="alert">{erroControle}</span>}
       </div>
 
@@ -447,9 +438,7 @@ export default function Maquina3D({
           <div className="op-twin-fault" role="status">
             <strong>⛔ Falha em {pinoEmFalha?.nome ?? leituraEmFalha.nome}</strong>
             <span>{leituraEmFalha.nome}: {leituraEmFalha.valor.toLocaleString('pt-BR')} {leituraEmFalha.unidade}</span>
-            <button type="button" onClick={() => escolherCamera('geral')}>
-              Ver visão geral
-            </button>
+            {conserto && <a href={conserto.href}>{conserto.texto}</a>}
           </div>
         )}
 

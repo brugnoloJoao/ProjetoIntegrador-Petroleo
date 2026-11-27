@@ -174,10 +174,11 @@ public class HistoricoController : Controller
         var sb = new StringBuilder();
         sb.AppendLine("DataHora;Equipamento;Parametro;Valor;Unidade");
         foreach (var d in dados)
-            sb.AppendLine($"{d.DataHora:dd/MM/yyyy HH:mm:ss};{p.Ativo?.Nome};{p.Nome};{d.Valor.ToString("F2", pt)};{p.Unidade}");
+            sb.AppendLine($"{ConverterParaHorarioLocal(d.DataHora):dd/MM/yyyy HH:mm:ss};{p.Ativo?.Nome};{p.Nome};{d.Valor.ToString("F2", pt)};{p.Unidade}");
 
         var bytes = Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
-        return File(bytes, "text/csv", $"historico_{parametroId}_{de:yyyyMMdd}-{ate:yyyyMMdd}.csv");
+        return File(bytes, "text/csv",
+            $"historico_{parametroId}_{ConverterParaHorarioLocal(de):yyyyMMdd}-{ConverterParaHorarioLocal(ate):yyyyMMdd}.csv");
     }
 
     private static DateTime ConverterEntradaUtc(DateTime? dataLocal)

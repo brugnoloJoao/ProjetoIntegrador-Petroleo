@@ -8,13 +8,13 @@ namespace ProjetoIntegrador_Petroleo.Models
     {
         public int Id { get; set; }
 
-        [Required, StringLength(100)]
+        [Required(ErrorMessage = "Informe o nome do equipamento."), StringLength(100)]
         public string Nome { get; set; } = string.Empty;
 
-        [Required, StringLength(30)]
+        [Required(ErrorMessage = "Informe a tag de identificação."), StringLength(30)]
         public string Tag { get; set; } = string.Empty;
 
-        [StringLength(50)]
+        [Required(ErrorMessage = "Escolha o tipo de equipamento."), StringLength(50)]
         public string Tipo { get; set; } = string.Empty;
 
         public StatusAtivo Status { get; set; }

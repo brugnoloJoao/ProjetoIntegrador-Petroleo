@@ -36,21 +36,19 @@ function agrupar(alertas) {
     maquina.alertas.push(alerta);
     maquinas.set(alerta.ativoId, maquina);
   }
-  return [...maquinas.values()].map((maquina) => {
-    const abertos = maquina.alertas.filter((alerta) => !alerta.normalizado);
-    return {
-      ...maquina,
-      emAberto: abertos.length > 0,
-      desde: abertos.map((alerta) => alerta.desde).sort()[0],
-      sensores: [...new Set((abertos.length ? abertos : maquina.alertas).map((alerta) => alerta.parametro))],
-    };
-  }).sort((a, b) => Number(b.emAberto) - Number(a.emAberto));
+  return [...maquinas.values()].map((maquina) => ({
+    ...maquina,
+    desde: maquina.alertas.map((alerta) => alerta.desde).sort()[0],
+    sensores: [...new Set(maquina.alertas.map((alerta) => alerta.parametro))],
+  }));
 }
 
 export function iniciarAlarme({ urlResumo, urlOcorrencias, urlAlerta, usuario, menu }) {
   const vistos = new Set(ler(sessionStorage, VISTOS, []));
   let silenciado = ler(localStorage, SILENCIO, false);
-  let pendentes = [];
+  let pendentes = []; // críticos que a pessoa ainda não dispensou
+  let criticosAtivos = []; // todos os críticos ativos gravados no sistema
+  let totalCriticos = 0;
   let aviso = null;
   let borda = null;
 
@@ -66,7 +64,7 @@ export function iniciarAlarme({ urlResumo, urlOcorrencias, urlAlerta, usuario, m
     }
     contador.hidden = quantidade === 0;
     contador.textContent = quantidade > 99 ? '99+' : String(quantidade);
-    const descricao = quantidade === 1 ? '1 alerta novo' : `${quantidade} alertas novos`;
+    const descricao = quantidade === 1 ? '1 alerta ativo' : `${quantidade} alertas ativos`;
     contador.setAttribute('aria-label', descricao);
     contador.title = descricao;
     // Pulsa só quando aumenta, inclusive de uma tela para outra.
@@ -95,8 +93,8 @@ export function iniciarAlarme({ urlResumo, urlOcorrencias, urlAlerta, usuario, m
       return;
     }
 
-    const maquinas = agrupar(pendentes);
-    const emAberto = maquinas.some((maquina) => maquina.emAberto);
+    // Aparece quando há crítico novo, mas conta todos os críticos ativos.
+    const maquinas = agrupar(criticosAtivos);
     if (!aviso) {
       aviso = criar('aside', 'ps-alarme');
       aviso.setAttribute('role', 'alert');
@@ -108,15 +106,15 @@ export function iniciarAlarme({ urlResumo, urlOcorrencias, urlAlerta, usuario, m
 
     // Só redesenha quando algo muda, para o leitor de tela não repetir o aviso.
     const semSom = !silenciado && !somLiberado();
-    const assinatura = JSON.stringify([maquinas.map((m) => [m.id, m.emAberto, m.desde, m.sensores]), silenciado, semSom]);
+    const assinatura = JSON.stringify([totalCriticos, maquinas.map((m) => [m.id, m.desde, m.sensores]), silenciado, semSom]);
     if (aviso.dataset.assinatura === assinatura) return;
     aviso.dataset.assinatura = assinatura;
-    aviso.classList.toggle('is-aberto', emAberto);
-    borda.classList.toggle('is-aberto', emAberto);
+    aviso.classList.add('is-aberto');
+    borda.classList.add('is-aberto');
 
-    const titulo = criar('strong', 'ps-alarme-titulo', maquinas.length === 1
-      ? (emAberto ? '⛔ Máquina em estado crítico' : '⛔ Houve um alerta crítico')
-      : `⛔ ${maquinas.length} máquinas com alerta crítico`);
+    const alertas = totalCriticos === 1 ? '1 alerta crítico ativo' : `${totalCriticos} alertas críticos ativos`;
+    const titulo = criar('strong', 'ps-alarme-titulo',
+      maquinas.length === 1 ? `⛔ ${alertas}` : `⛔ ${alertas} em ${maquinas.length} máquinas`);
     const lista = criar('ul');
     for (const maquina of maquinas.slice(0, 3)) {
       const item = criar('li');
@@ -127,13 +125,11 @@ export function iniciarAlarme({ urlResumo, urlOcorrencias, urlAlerta, usuario, m
         : `${urlOcorrencias}?dias=1&ativoId=${maquina.id}`;
       link.append(
         criar('b', '', `${maquina.ativo} (${maquina.tag})`),
-        criar('span', 'ps-alarme-sensores', `${maquina.sensores.join(', ')}${maquina.emAberto ? '' : ' · já voltou ao normal'}`),
+        criar('span', 'ps-alarme-sensores', maquina.sensores.join(', ')),
       );
-      if (maquina.emAberto) {
-        const espera = criar('span');
-        espera.dataset.espera = maquina.desde;
-        link.appendChild(espera);
-      }
+      const espera = criar('span');
+      espera.dataset.espera = maquina.desde;
+      link.appendChild(espera);
       item.appendChild(link);
       lista.appendChild(item);
     }
@@ -170,7 +166,7 @@ export function iniciarAlarme({ urlResumo, urlOcorrencias, urlAlerta, usuario, m
     const jaTocaram = ler(sessionStorage, MAQUINAS, []).filter((id) => criticas.has(id));
     gravar(sessionStorage, MAQUINAS, jaTocaram);
 
-    const semResposta = agrupar(pendentes).filter((maquina) => maquina.emAberto).map((maquina) => maquina.id);
+    const semResposta = agrupar(pendentes).map((maquina) => maquina.id);
     if (!semResposta.length || silenciado) return;
     const desdeOUltimo = Date.now() - ler(sessionStorage, ULTIMO_SOM, 0);
     const entrou = semResposta.some((id) => !jaTocaram.includes(id));
@@ -188,12 +184,14 @@ export function iniciarAlarme({ urlResumo, urlOcorrencias, urlAlerta, usuario, m
       if (resposta.redirected || resposta.status === 401) return;
       if (resposta.ok) {
         const resumo = await resposta.json();
-        // Abrir um alerta tira ele daqui e do contador, mesmo em outra aba.
+        // O contador mostra os alertas ativos gravados; abrir um alerta só dispensa o aviso dele.
         const abertos = alertasVistos(usuario);
-        mostrarContador(resumo.idsAtivos.filter((id) => !abertos.has(id)).length);
-        pendentes = resumo.criticos.filter((alerta) => !vistos.has(alerta.id) && !abertos.has(alerta.id));
+        mostrarContador(resumo.ativos);
+        criticosAtivos = resumo.criticos;
+        totalCriticos = resumo.totalCriticos;
+        pendentes = criticosAtivos.filter((alerta) => !vistos.has(alerta.id) && !abertos.has(alerta.id));
         desenhar();
-        avaliarSom(new Set(resumo.criticos.filter((alerta) => !alerta.normalizado).map((alerta) => alerta.ativoId)));
+        avaliarSom(new Set(criticosAtivos.map((alerta) => alerta.ativoId)));
       }
     } catch { /* Sem conexão: tenta de novo no próximo ciclo. */ }
     temporizador = setTimeout(consultar, INTERVALO);

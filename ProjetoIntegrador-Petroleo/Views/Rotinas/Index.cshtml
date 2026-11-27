@@ -61,7 +61,7 @@ else
                             }
                         </td>
                         <td>@r.TipoManutencao.Nome()</td>
-                        <td>@(r.ParametroNome == null ? "—" : $"Alerta em “{r.ParametroNome}”")</td>
+                        <td>@(r.ParametroNome == null ? "—" : GatilhoRotina.Descrever(r.ParametroNome))</td>
                         <td>@(r.IntervaloDias == null ? "—" : $"{r.IntervaloDias} dias")</td>
                         <td><span class="badge @(r.Ativa ? "bg-success" : "bg-secondary")">@(r.Ativa ? "Em uso" : "Desativada")</span></td>
                         <td class="text-end text-nowrap">
